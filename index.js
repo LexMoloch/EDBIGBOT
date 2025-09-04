@@ -40,7 +40,7 @@
                           const t = data.traffic;
 
 						// Build a breakdown text if available
-						const breakdown = t?.breakdown || {};
+						const breakdown = data.breakdown || {};
 						const breakdownText = Object.entries(breakdown)
 						.map(([ship, count]) => `• ${ship}: ${count}`)
 						.join('\n') || "Nema podataka";
