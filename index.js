@@ -180,7 +180,7 @@ client.on('messageCreate', async (message) => {
           { name: "💰 Ekonomija", value: economyText, inline: true },
           { name: "Frakcije", value: factionText, inline: false }
         ],
-        footer: { text: `v1.3.0` },
+        footer: { text: `Zatražio/la: ${message.author.tag} | v1.3.0` },
         timestamp: new Date()
       };
 
