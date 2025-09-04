@@ -263,7 +263,7 @@ function simplePads(station) {
 
     // === Star & Planet Data ===
     const stars = astro.stars || [];
-    const mainStar = stars[0]?.name ?? 'Unknown';
+    const mainStar = astro.stars?.[0]?.subType ?? "Unknown";
     const planets = astro.planets || [];
     const numPlanets = planets.length;
     const numELW = planets.filter(p => p.subType?.toLowerCase().includes('elw')).length;
