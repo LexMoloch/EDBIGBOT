@@ -121,9 +121,13 @@ client.on('messageCreate', async (message) => {
   }
 
   // 🌌 /system command
-  if (content.toLowerCase().startsWith('/system')) {
-    const systemName = content.slice(7).trim();
-    if (!systemName) return message.reply('⚠️ Unesi naziv sustava. Primjer: `/system Wazn`');
+if (content.toLowerCase().startsWith('/system')) {
+  const parts = content.trim().split(/\s+/);
+  const systemName = parts.slice(1).join(' '); // everything after /system
+
+  if (!systemName) {
+    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/systemx Grudi`');
+  }
 
     const encodedName = encodeURIComponent(systemName);
     const EDSM_SYSTEM_URL = `https://www.edsm.net/api-v1/system?systemName=${encodedName}&showInformation=1&showId=1&showPrimaryStar=1`;
@@ -196,8 +200,12 @@ client.on('messageCreate', async (message) => {
 
 // 🌌 /systemx command (EDAstro + EDSM full)
 if (content.toLowerCase().startsWith('/systemx')) {
-  const systemName = content.slice(8).trim();
-  if (!systemName) return message.reply('⚠️ Unesi naziv sustava. Primjer: `/systemx Grudi`');
+  const parts = content.trim().split(/\s+/);
+  const systemName = parts.slice(1).join(' '); // everything after /systemx
+
+  if (!systemName) {
+    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/systemx Grudi`');
+  }
 
   const encodedName = encodeURIComponent(systemName);
   const EDSM_SYSTEM_URL = `https://www.edsm.net/api-v1/system?systemName=${encodedName}&showInformation=1&showId=1&showPrimaryStar=1`;
