@@ -57,7 +57,7 @@
 								{ name: "Brodovi zadnjih 24 sata", value: breakdownText, inline: false }								
 
                             )
-                            .setFooter({ text: `Zatražio/la: ${message.author.tag}` })
+							.setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.2.1` })
                             .setTimestamp();
 
                           message.reply({ embeds: [embed] });
@@ -113,7 +113,7 @@
                             .setDescription(`🔹 **${system1}** ↔️ **${system2}**\n📐 ${distance} Ly`)
                             .setColor(0x00bfff)
                             .setTimestamp()
-                            .setFooter({ text: `Zatražio/la: ${message.author.tag} • app v1.2.1` });
+							.setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.2.1` })
 
                           message.reply({ embeds: [embed] });
 
