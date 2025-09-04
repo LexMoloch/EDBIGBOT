@@ -39,6 +39,12 @@
                           const data = await res.json();
                           const t = data.traffic;
 
+						// Build a breakdown text if available
+						const breakdown = t?.breakdown || {};
+						const breakdownText = Object.entries(breakdown)
+						.map(([ship, count]) => `• ${ship}: ${count}`)
+						.join('\n') || "Nema podataka";
+
                           const embed = new EmbedBuilder()
                             .setTitle(`🚀 Izvještaj o prometu u sustavu ${systemName}`)
                             .setURL(systemUrl)
