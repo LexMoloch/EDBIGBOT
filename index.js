@@ -271,9 +271,13 @@ function simplePads(station) {
     const numGasGiants = planets.filter(p => p.subType?.toLowerCase().includes('gas giant')).length;
     const distanceFromSol = astro.sol_dist != null ? astro.sol_dist.toFixed(2) : 'Unknown';
 
-    // === Rings ===
-    const rings = stars.flatMap(s => s.rings || s.belts || []);
-    const ringsText = rings.length ? rings.map(r => `* ${r.name} (${r.type})`).join('\n') : "None";
+// === Rings ===
+const starRings = astro.stars?.flatMap(s => [...(s.rings || []), ...(s.belts || [])]) || [];
+const planetRings = planets.flatMap(p => p.rings || []);
+const allRings = [...starRings, ...planetRings];
+const ringsText = allRings.length
+  ? allRings.map(r => `* ${r.name} (${r.type})`).join('\n')
+  : "None";
 
 // === Starports ===
 const stations = astro.stations || [];
