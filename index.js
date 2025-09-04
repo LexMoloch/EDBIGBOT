@@ -317,20 +317,27 @@ if (totalOdy > 0) {
   odysseyText = `* Settlementi s L pad: ${countL}\n* Settlementi s M pad: ${countM}`;
 }
 
-    // === Carriers ===
-    const carriers = astro.carriers || [];
-    const carrierText = carriers.length
-      ? carriers.map(c => {
-          const isSquadron = c.callsign && c.callsign.length === 4;
-          const docking = !isSquadron
-            ? (c.dockingAccess === 'squadronfriends' ? 'Squadron and Friends' : safe(c.dockingAccess))
-            : '';
-          const carrierLabel = isSquadron
-            ? `*  **Squadron Carrier** [${c.callsign}]`
-            : `*  **${capitalizeAll(c.name ?? 'Unnamed')}** [${c.callsign}]`;
-          return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
-        }).join('\n')
-      : "Nema carriera";
+// === Carriers ===
+const carriers = astro.carriers || [];
+const carrierText = carriers.length
+  ? (() => {
+      const maxDisplay = 10;
+      const displayed = carriers.slice(0, maxDisplay).map(c => {
+        const isSquadron = c.callsign && c.callsign.length === 4;
+        const docking = !isSquadron
+          ? (c.dockingAccess === 'squadronfriends' ? 'Squadron and Friends' : safe(c.dockingAccess))
+          : '';
+        const carrierLabel = isSquadron
+          ? `*  **Squadron Carrier** [${c.callsign}]`
+          : `*  **${capitalizeAll(c.name ?? 'Unnamed')}** [${c.callsign}]`;
+        return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
+      });
+      if (carriers.length > maxDisplay) {
+        displayed.push(`* ...${carriers.length - maxDisplay} more`);
+      }
+      return displayed.join('\n');
+    })()
+  : "Nema carriera";
 
       const factions = factionData.factions || [];
       const controllingFactionId = factionData.controllingFaction?.id;
