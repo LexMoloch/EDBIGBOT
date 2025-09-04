@@ -275,17 +275,24 @@ function simplePads(station) {
     const rings = stars.flatMap(s => s.rings || s.belts || []);
     const ringsText = rings.length ? rings.map(r => `* ${r.name} (${r.type})`).join('\n') : "None";
 
-    // === Starports ===
-    const stations = astro.stations || [];
-    const starports = stations.filter(s => {
-      const type = (s.type || '').toLowerCase();
-      return ['coriolis','orbis','ocellus','starport','outpost'].some(t => type.includes(t));
-    });
+// === Starports ===
+const stations = astro.stations || [];
+const starports = stations
+  .filter(s => {
+    const type = (s.type || '').toLowerCase();
+    return ['coriolis','orbis','ocellus','starport','outpost'].some(t => type.includes(t));
+  })
+  .sort((a, b) => {
+    const distA = a.distanceToArrival ?? Infinity;
+    const distB = b.distanceToArrival ?? Infinity;
+    return distA - distB;
+  });
+
 const starportText = starports.length
   ? starports.map(s => {
       const pads = simplePads(s);
-      const dist = s.distanceToArrival  != null ? s.distanceToArrival.toFixed(2) + " ls" : "Unknown";
-      return `* ${s.name} ${pads} (${dist})`;
+      const dist = s.distanceToArrival != null ? Math.round(s.distanceToArrival) + " ls" : "Unknown";
+      return `* ${s.name} ${pads} - *${dist}*`;
     }).join('\n')
   : "None";
 
