@@ -198,42 +198,144 @@ if (content.toLowerCase().startsWith('/system')) {
     return;
   }
 
-  // 🌌 /xsystem check
-  if (content.toLowerCase().startsWith('/xsystem')) {
-    const parts = content.split(/\s+/);
-    const systemName = parts.slice(1).join(' ');
+// 🌌 /xsystem command (EDAstro + EDSM full)
+if (content.toLowerCase().startsWith('/xsystem')) {
+  const parts = content.trim().split(/\s+/);
+  const systemName = parts.slice(1).join(' '); // everything after /xsystem
 
-    if (!systemName) {
-      return message.reply('⚠️ Please provide a system name. Example: `/xsystem Grudi`');
-    }
-
-    const encodedName = encodeURIComponent(systemName);
-    const EDSM_SYSTEM_URL = `https://www.edsm.net/api-v1/system?systemName=${encodedName}&showInformation=1&showId=1&showPrimaryStar=1`;
-    const EDSM_FACTIONS_URL = `https://www.edsm.net/api-system-v1/factions?systemName=${encodedName}`;
-    const EDASTRO_URL = `https://edastro.com/api/starsystem?q=${encodedName}`;
-
-    try {
-      const [systemRes, factionRes, edastroRes] = await Promise.all([
-        fetch(EDSM_SYSTEM_URL),
-        fetch(EDSM_FACTIONS_URL),
-        fetch(EDASTRO_URL)
-      ]);
-
-      const systemData = await systemRes.json() || {};
-      const factionData = await factionRes.json() || {};
-      let edastroData = await edastroRes.json();
-      if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
-
-      console.log("✅ systemData:", systemData);
-      console.log("✅ factionData:", factionData);
-      console.log("✅ edastroData:", edastroData);
-
-      message.reply(`✅ Fetched data for system: **${systemName}**. Check console logs.`);
-    } catch (err) {
-      console.error("❌ Error fetching APIs:", err);
-      message.reply('❌ Failed to fetch system data.');
-    }
+  if (!systemName) {
+    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/xsystem Grudi`');
   }
+
+  const encodedName = encodeURIComponent(systemName);
+  const EDSM_SYSTEM_URL = `https://www.edsm.net/api-v1/system?systemName=${encodedName}&showInformation=1&showId=1&showPrimaryStar=1`;
+  const EDSM_FACTIONS_URL = `https://www.edsm.net/api-system-v1/factions?systemName=${encodedName}`;
+  const EDASTRO_URL = `https://edastro.com/api/starsystem?q=${encodedName}`;
+
+  try {
+    const [systemRes, factionRes, edastroRes] = await Promise.all([
+      fetch(EDSM_SYSTEM_URL),
+      fetch(EDSM_FACTIONS_URL),
+      fetch(EDASTRO_URL)
+    ]);
+
+    const systemData = await systemRes.json() || {};
+    const factionData = await factionRes.json() || {};
+    let edastroData = await edastroRes.json() || {};
+    if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
+    const astro = edastroData || {};
+
+    // === EDSM Info ===
+    const systemInfo = {
+      id: systemData.id ?? 'Unknown',
+      government: systemData.government ?? systemData.information?.government ?? 'Unknown',
+      allegiance: systemData.allegiance ?? systemData.information?.allegiance ?? 'Unknown',
+      security: systemData.security ?? systemData.information?.security ?? 'Unknown',
+      population: systemData.population ?? systemData.information?.population ?? 'Unknown',
+      economy: systemData.information?.economy ?? 'Unknown',
+      secondEconomy: systemData.information?.secondEconomy ?? null
+    };
+
+    // === Star & Planet Data ===
+    const stars = astro.stars || [];
+    const mainStar = stars[0]?.name ?? 'Unknown';
+    const planets = astro.planets || [];
+    const numPlanets = planets.length;
+    const numELW = planets.filter(p => p.subType?.toLowerCase().includes('elw')).length;
+    const numWW = planets.filter(p => p.subType?.toLowerCase().includes('ww')).length;
+    const numGasGiants = planets.filter(p => p.subType?.toLowerCase().includes('gas giant')).length;
+    const distanceFromSol = astro.distanceFromSol != null ? astro.distanceFromSol.toFixed(2) : 'Unknown';
+
+    // === Rings ===
+    const rings = stars.flatMap(s => s.rings || s.belts || []);
+    const ringsText = rings.length ? rings.map(r => `* ${r.name} (${r.type})`).join('\n') : "None";
+
+    // === Starports ===
+    const stations = astro.stations || [];
+    const starports = stations.filter(s => {
+      const type = (s.type || '').toLowerCase();
+      return ['coriolis','orbis','ocellus','starport','outpost'].some(t => type.includes(t));
+    });
+    const starportText = starports.length
+      ? starports.map(s => `* ${s.name} ${simplePads(s)}`).join('\n')
+      : "None";
+
+    // === Odyssey Settlements ===
+    const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
+    const totalOdy = odysseySettlements.length;
+    const hasL = odysseySettlements.some(s => (s.padsL || 0) > 0) ? '✅' : '❌';
+    const hasM = odysseySettlements.some(s => (s.padsM || 0) > 0) ? '✅' : '❌';
+    const odysseyText = `**Odyssey Settlements:** ${totalOdy} [L${hasL} M${hasM}]`;
+
+    // === Carriers ===
+    const carriers = astro.carriers || [];
+    const carrierText = carriers.length
+      ? carriers.map(c => {
+          const isSquadron = c.callsign && c.callsign.length === 4;
+          const docking = !isSquadron
+            ? (c.dockingAccess === 'squadronfriends' ? 'Squadron and Friends' : safe(c.dockingAccess))
+            : '';
+          const carrierLabel = isSquadron
+            ? `*  **Squadron Carrier** [${c.callsign}]`
+            : `*  **${capitalizeAll(c.name ?? 'Unnamed')}** [${c.callsign}]`;
+          return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
+        }).join('\n\n')
+      : "None";
+
+    // === Factions ===
+    const factions = factionData.factions || [];
+    const controllingFactionId = factionData.controllingFaction?.id;
+    const factionText = factions.length
+      ? factions.map(f => {
+          const infPercent = (f.influence * 100).toFixed(2);
+          const activeStates = f.activeStates?.map(s => s.state).join(', ');
+          let prefix = "";
+          if (f.id === controllingFactionId) prefix += "👑 ";
+          if (f.isPlayer) prefix += "👥 ";
+          return activeStates
+            ? `* ${prefix}${f.name}: ${infPercent}% | ${activeStates}`
+            : `* ${prefix}${f.name}: ${infPercent}%`;
+        }).join('\n')
+      : 'No faction data';
+
+    // === Build Embed ===
+    const embed = new EmbedBuilder()
+      .setTitle(`🌌 System ${systemData.name || systemName}`)
+      .setURL(systemData.url)
+      .setColor(0x00bfff)
+      .addFields(
+        { name: "🆔 System ID", value: `${systemInfo.id}`, inline: true },
+        { name: "🏛️ Government", value: systemInfo.government, inline: true },
+        { name: "⚖️ Allegiance", value: systemInfo.allegiance, inline: true },
+        { name: "🔒 Security", value: systemInfo.security, inline: true },
+        { name: "👥 Population", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
+        { name: "💰 Economy", value: systemInfo.secondEconomy ? `${systemInfo.economy} / ${systemInfo.secondEconomy}` : systemInfo.economy, inline: true },
+
+        { name: "⭐ Main Star", value: mainStar, inline: true },
+        { name: "📏 Distance from Sol", value: `${distanceFromSol} ly`, inline: true },
+        { name: "🌕 Planets", value: `${numPlanets}`, inline: true },
+        { name: "🌍 ELWs", value: `${numELW}`, inline: true },
+        { name: "🔵 Water Worlds", value: `${numWW}`, inline: true },
+        { name: "⚪ Gas Giants", value: `${numGasGiants}`, inline: true },
+
+        { name: "🪐 Rings", value: ringsText, inline: false },
+        { name: "🏢 Starports", value: starportText, inline: false },
+        { name: odysseyText, value: '\u200b', inline: false },
+
+        { name: `🛰️ Carriers (Total: ${carriers.length})`, value: carrierText, inline: false },
+        { name: "Factions", value: factionText, inline: false }
+      )
+      .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.5.1` })
+      .setTimestamp();
+
+    message.reply({ embeds: [embed] });
+
+  } catch (err) {
+    console.error(err);
+    message.reply('❌ Greška pri dohvaćanju podataka o sustavu ili frakcijama.');
+  }
+}
+
 
 });
 
