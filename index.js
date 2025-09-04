@@ -204,7 +204,7 @@ if (content.toLowerCase().startsWith('/xsystem')) {
   const systemName = parts.slice(1).join(' '); // everything after /xsystem
 
   if (!systemName) {
-    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/systemx Grudi`');
+    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/xsystem Grudi`');
   }
 
   const encodedName = encodeURIComponent(systemName);
@@ -340,7 +340,7 @@ if (content.toLowerCase().startsWith('/xsystem')) {
 
   } catch (err) {
     console.error(err);
-    message.reply('❌ Greška pri dohvaćanju podataka o sustavu ili frakcijama.');
+    message.reply('❌ /xsystem Greška pri dohvaćanju podataka o sustavu ili frakcijama.');
   }
 }
 
