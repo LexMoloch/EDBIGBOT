@@ -45,9 +45,11 @@
                             .setColor(0x00bfff)
                             .setDescription(`Aktivnost brodova za **${systemName}**:`)
                             .addFields(
-                              { name: "🗓️ Zadnjih 7 dana", value: `${(t?.total ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
-                              { name: "📅 Zadnjih 24 sata", value: `${(t?.['24h'] ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
-                              { name: "⏱️ Zadnji sat", value: `${(t?.['1h'] ?? 0).toLocaleString('hr-HR')} brodova`, inline: true }
+								{ name: "🌌 Ukupno", value: `${(t?.total ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
+								{ name: "🗓️ Zadnjih 7 dana", value: `${(t?.week ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
+								{ name: "📅 Zadnjih 24 sata", value: `${(t?.day ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
+								{ name: "🛸 Brodovi", value: breakdownText, inline: false }								
+
                             )
                             .setFooter({ text: `Zatražio/la: ${message.author.tag}` })
                             .setTimestamp();
