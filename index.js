@@ -219,11 +219,17 @@ if (content.toLowerCase().startsWith('/xsystem')) {
       fetch(EDASTRO_URL)
     ]);
 
+    // Parse JSON once
     const systemData = await systemRes.json() || {};
     const factionData = await factionRes.json() || {};
-    let edastroData = await edastroRes.json();
+    let edastroData = await edastroRes.json() || {};
     if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
-    const astro = edastroData || {};
+    const astro = edastroData;
+
+    console.log("✅ systemData:", systemData);
+    console.log("✅ factionData:", factionData);
+    console.log("✅ astroData:", astro);
+
 
     // === EDSM Info ===
     const systemInfo = {
