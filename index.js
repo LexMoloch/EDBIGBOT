@@ -269,7 +269,7 @@ function simplePads(station) {
     const numELW = planets.filter(p => p.subType?.toLowerCase().includes('elw')).length;
     const numWW = planets.filter(p => p.subType?.toLowerCase().includes('ww')).length;
     const numGasGiants = planets.filter(p => p.subType?.toLowerCase().includes('gas giant')).length;
-    const distanceFromSol = astro.distanceFromSol != null ? astro.distanceFromSol.toFixed(2) : 'Unknown';
+    const distanceFromSol = astro.sol_dist != null ? astro.sol_dist.toFixed(2) : 'Unknown';
 
     // === Rings ===
     const rings = stars.flatMap(s => s.rings || s.belts || []);
@@ -284,7 +284,7 @@ function simplePads(station) {
 const starportText = starports.length
   ? starports.map(s => {
       const pads = simplePads(s);
-      const dist = s.distanceFromStar != null ? s.distanceFromStar.toFixed(2) + " ly" : "Unknown";
+      const dist = s.distanceToArrival  != null ? s.distanceToArrival.toFixed(2) + " ls" : "Unknown";
       return `* ${s.name} ${pads} (${dist})`;
     }).join('\n')
   : "None";
@@ -293,10 +293,13 @@ const starportText = starports.length
     const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
     const totalOdy = odysseySettlements.length;
 
-    // Count number of settlements with L and M pads
-    const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
-    const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
-    const odysseyText = `* Settlements with L pads: ${countL}\n* Settlements with M pads: ${countM}`;
+let odysseyText = "No landable settlements";
+if (totalOdy > 0) {
+  // Count number of settlements with L and M pads
+  const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
+  const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
+  odysseyText = `* Settlements with L pads: ${countL}\n* Settlements with M pads: ${countM}`;
+}
 
     // === Carriers ===
     const carriers = astro.carriers || [];
@@ -310,7 +313,7 @@ const starportText = starports.length
             ? `*  **Squadron Carrier** [${c.callsign}]`
             : `*  **${capitalizeAll(c.name ?? 'Unnamed')}** [${c.callsign}]`;
           return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
-        }).join('\n\n')
+        }).join('\n')
       : "None";
 
     // === Factions ===
