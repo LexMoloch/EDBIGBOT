@@ -266,8 +266,8 @@ function simplePads(station) {
     const mainStar = astro.stars?.[0]?.subType ?? "Unknown";
     const planets = astro.planets || [];
     const numPlanets = planets.length;
-    const numELW = planets.filter(p => p.subType?.toLowerCase().includes('elw')).length;
-    const numWW = planets.filter(p => p.subType?.toLowerCase().includes('ww')).length;
+    const numELW = planets.filter(p => p.subType?.toLowerCase().includes('Earth-like world')).length;
+    const numWW = planets.filter(p => p.subType?.toLowerCase().includes('Water world')).length;
     const numGasGiants = planets.filter(p => p.subType?.toLowerCase().includes('gas giant')).length;
     const distanceFromSol = astro.sol_dist != null ? astro.sol_dist.toFixed(2) : 'Unknown';
 
