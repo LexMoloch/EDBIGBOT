@@ -281,16 +281,22 @@ function simplePads(station) {
       const type = (s.type || '').toLowerCase();
       return ['coriolis','orbis','ocellus','starport','outpost'].some(t => type.includes(t));
     });
-    const starportText = starports.length
-      ? starports.map(s => `* ${s.name} ${simplePads(s)}`).join('\n')
-      : "None";
+const starportText = starports.length
+  ? starports.map(s => {
+      const pads = simplePads(s);
+      const dist = s.distanceFromStar != null ? s.distanceFromStar.toFixed(2) + " ly" : "Unknown";
+      return `* ${s.name} ${pads} (${dist})`;
+    }).join('\n')
+  : "None";
 
     // === Odyssey Settlements ===
     const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
     const totalOdy = odysseySettlements.length;
-    const hasL = odysseySettlements.some(s => (s.padsL || 0) > 0) ? '✅' : '❌';
-    const hasM = odysseySettlements.some(s => (s.padsM || 0) > 0) ? '✅' : '❌';
-    const odysseyText = `**Odyssey Settlements:** ${totalOdy} [L${hasL} M${hasM}]`;
+
+    // Count number of settlements with L and M pads
+    const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
+    const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
+    const odysseyText = `* Settlements with L pads: ${countL}\n* Settlements with M pads: ${countM}`
 
     // === Carriers ===
     const carriers = astro.carriers || [];
@@ -335,22 +341,19 @@ function simplePads(station) {
         { name: "🔒 Security", value: systemInfo.security, inline: true },
         { name: "👥 Population", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
         { name: "💰 Economy", value: systemInfo.secondEconomy ? `${systemInfo.economy} / ${systemInfo.secondEconomy}` : systemInfo.economy, inline: true },
-
         { name: "⭐ Main Star", value: mainStar, inline: true },
         { name: "📏 Distance from Sol", value: `${distanceFromSol} ly`, inline: true },
         { name: "🌕 Planets", value: `${numPlanets}`, inline: true },
         { name: "🌍 ELWs", value: `${numELW}`, inline: true },
         { name: "🔵 Water Worlds", value: `${numWW}`, inline: true },
         { name: "⚪ Gas Giants", value: `${numGasGiants}`, inline: true },
-
         { name: "🪐 Rings", value: ringsText, inline: false },
         { name: "🏢 Starports", value: starportText, inline: false },
-        { name: odysseyText, value: '\u200b', inline: false },
-
+	{ name: `🏠 Odyssey Settlements (Total: ${totalOdy})`, value: odysseyText, inline: false }
         { name: `🛰️ Carriers (Total: ${carriers.length})`, value: carrierText, inline: false },
         { name: "Factions", value: factionText, inline: false }
       )
-      .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.5.1` })
+      .setFooter({ text: `Zatražio/la: ${message.author.tag} | EDSM+EDASTRO | v1.3.0` })
       .setTimestamp();
 
     message.reply({ embeds: [embed] });
