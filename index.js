@@ -296,7 +296,7 @@ const starportText = starports.length
     // Count number of settlements with L and M pads
     const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
     const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
-    const odysseyText = `* Settlements with L pads: ${countL}\n* Settlements with M pads: ${countM}`
+    const odysseyText = `* Settlements with L pads: ${countL}\n* Settlements with M pads: ${countM}`;
 
     // === Carriers ===
     const carriers = astro.carriers || [];
@@ -349,7 +349,7 @@ const starportText = starports.length
         { name: "⚪ Gas Giants", value: `${numGasGiants}`, inline: true },
         { name: "🪐 Rings", value: ringsText, inline: false },
         { name: "🏢 Starports", value: starportText, inline: false },
-	{ name: `🏠 Odyssey Settlements (Total: ${totalOdy})`, value: odysseyText, inline: false }
+	{ name: `🏠 Odyssey Settlements (Total: ${totalOdy})`, value: odysseyText, inline: false },
         { name: `🛰️ Carriers (Total: ${carriers.length})`, value: carrierText, inline: false },
         { name: "Factions", value: factionText, inline: false }
       )
