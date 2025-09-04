@@ -200,6 +200,31 @@ if (content.toLowerCase().startsWith('/system')) {
 
 // 🌌 /xsystem command (EDAstro + EDSM full)
 if (content.toLowerCase().startsWith('/xsystem')) {
+
+// Capitalize each word normally
+function capitalizeWords(str) {
+  return str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : str;
+}
+
+// Capitalize all letters
+function capitalizeAll(str) {
+  return str ? str.split(' ').map(w => w.toUpperCase()).join(' ') : str;
+}
+
+// Safe value to string or fallback
+const safe = v => v != null ? String(v) : "Unknown";
+
+// Determine simple pad indicator for stations
+function simplePads(station) {
+  const L = station.padsL || 0;
+  const M = station.padsM || 0;
+  const S = station.padsS || 0;
+  if (L > 0) return "[L]";
+  if (L === 0 && M > 0) return "[M]";
+  if (L === 0 && M === 0 && S > 0) return "[S]";
+  return "";
+};
+
   const parts = content.trim().split(/\s+/);
   const systemName = parts.slice(1).join(' '); // everything after /xsystem
 
