@@ -126,7 +126,7 @@ if (content.toLowerCase().startsWith('/system')) {
   const systemName = parts.slice(1).join(' '); // everything after /system
 
   if (!systemName) {
-    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/systemx Grudi`');
+    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/system Grudi`');
   }
 
     const encodedName = encodeURIComponent(systemName);
@@ -198,10 +198,10 @@ if (content.toLowerCase().startsWith('/system')) {
     return;
   }
 
-// 🌌 /systemx command (EDAstro + EDSM full)
-if (content.toLowerCase().startsWith('/systemx')) {
+// 🌌 /xsystem command (EDAstro + EDSM full)
+if (content.toLowerCase().startsWith('/xsystem')) {
   const parts = content.trim().split(/\s+/);
-  const systemName = parts.slice(1).join(' '); // everything after /systemx
+  const systemName = parts.slice(1).join(' '); // everything after /xsystem
 
   if (!systemName) {
     return message.reply('⚠️ Unesi naziv sustava. Primjer: `/systemx Grudi`');
