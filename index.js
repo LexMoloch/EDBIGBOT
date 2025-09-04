@@ -46,7 +46,7 @@
 						.join('\n') || "Nema podataka";
 
                           const embed = new EmbedBuilder()
-                            .setTitle(`🚀 Izvještaj o prometu u sustavu ${systemName} v1.2.1`)
+                            .setTitle(`🚀 Izvještaj o prometu u sustavu ${systemName}`)
                             .setURL(systemUrl)
                             .setColor(0x00bfff)
                             .setDescription(`Aktivnost brodova za **${systemName}**:`)
@@ -113,7 +113,7 @@
                             .setDescription(`🔹 **${system1}** ↔️ **${system2}**\n📐 ${distance} Ly`)
                             .setColor(0x00bfff)
                             .setTimestamp()
-                            .setFooter({ text: `Zatražio/la: ${message.author.tag}` });
+                            .setFooter({ text: `Zatražio/la: ${message.author.tag} • app v1.2.1` });
 
                           message.reply({ embeds: [embed] });
 
