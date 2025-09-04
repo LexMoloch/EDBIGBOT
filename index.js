@@ -46,7 +46,7 @@
 						.join('\n') || "Nema podataka";
 
                           const embed = new EmbedBuilder()
-                            .setTitle(`🚀 Izvještaj o prometu u sustavu ${systemName}`)
+                            .setTitle(`🚀 Izvještaj o prometu u sustavu ${systemName} v1.2.1`)
                             .setURL(systemUrl)
                             .setColor(0x00bfff)
                             .setDescription(`Aktivnost brodova za **${systemName}**:`)
