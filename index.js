@@ -51,13 +51,13 @@
                             .setColor(0x00bfff)
                             .setDescription(`Aktivnost brodova za **${systemName}**:`)
                             .addFields(
-								{ name: "🌌 Ukupno", value: `${(t?.total ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
-								{ name: "🗓️ Zadnjih 7 dana", value: `${(t?.week ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
-								{ name: "📅 Zadnjih 24 sata", value: `${(t?.day ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
+								{ name: "🌌 Ukupno", value: `${(t?.total ?? 0).toLocaleString('hr-HR')}`, inline: true },
+								{ name: "🗓️ Zadnjih 7 dana", value: `${(t?.week ?? 0).toLocaleString('hr-HR')}`, inline: true },
+								{ name: "📅 Zadnjih 24 sata", value: `${(t?.day ?? 0).toLocaleString('hr-HR')}`, inline: true },
 								{ name: "Brodovi zadnjih 24 sata", value: breakdownText, inline: false }								
 
                             )
-							.setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.2.1` })
+							.setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.2.2` })
                             .setTimestamp();
 
                           message.reply({ embeds: [embed] });
@@ -113,7 +113,7 @@
                             .setDescription(`🔹 **${system1}** ↔️ **${system2}**\n📐 ${distance} Ly`)
                             .setColor(0x00bfff)
                             .setTimestamp()
-							.setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.2.1` })
+							.setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.2.2` })
 
                           message.reply({ embeds: [embed] });
 
