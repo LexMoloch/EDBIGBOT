@@ -54,7 +54,7 @@
 								{ name: "🌌 Ukupno", value: `${(t?.total ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
 								{ name: "🗓️ Zadnjih 7 dana", value: `${(t?.week ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
 								{ name: "📅 Zadnjih 24 sata", value: `${(t?.day ?? 0).toLocaleString('hr-HR')} brodova`, inline: true },
-								{ name: "🛸 Brodovi", value: breakdownText, inline: false }								
+								{ name: "Brodovi zadnjih 24 sata", value: breakdownText, inline: false }								
 
                             )
                             .setFooter({ text: `Zatražio/la: ${message.author.tag}` })
