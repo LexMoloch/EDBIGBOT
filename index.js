@@ -291,10 +291,15 @@ const starports = stations
 const starportText = starports.length
   ? starports.map(s => {
       const pads = simplePads(s);
+      // Only show [PLANET bodyName] if type is exactly "Planetary Outpost"
+      const planetInfo = s.type === "Planetary Outpost" && s.bodyName ? `[PLANETARY, ${s.bodyName}]` : '';
       const dist = s.distanceToArrival != null ? Math.round(s.distanceToArrival) + " ls" : "Unknown";
-      return `* ${s.name} ${pads} - *${dist}*`;
+      // Conditionally add a space before planetInfo
+      return `* ${s.name} ${pads}${planetInfo ? ' ' + planetInfo : ''} - *${dist}*`;
     }).join('\n')
   : "None";
+
+
 
     // === Odyssey Settlements ===
     const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
