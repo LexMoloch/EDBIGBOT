@@ -225,48 +225,43 @@ if (content.toLowerCase().startsWith('/xsystem')) {
     if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
     const astro = edastroData || {};
 
-    // === EDSM info ===
+    // === EDSM Info ===
     const systemInfo = {
-      id: systemData.id ?? 'Nepoznato',
-      government: systemData.government ?? systemData.information?.government ?? 'Nepoznato',
-      allegiance: systemData.allegiance ?? systemData.information?.allegiance ?? 'Nepoznato',
-      security: systemData.security ?? systemData.information?.security ?? 'Nepoznato',
-      population: systemData.population ?? systemData.information?.population ?? 'Nepoznato',
-      economy: systemData.information?.economy ?? 'Nepoznato',
+      id: systemData.id ?? 'Unknown',
+      government: systemData.government ?? systemData.information?.government ?? 'Unknown',
+      allegiance: systemData.allegiance ?? systemData.information?.allegiance ?? 'Unknown',
+      security: systemData.security ?? systemData.information?.security ?? 'Unknown',
+      population: systemData.population ?? systemData.information?.population ?? 'Unknown',
+      economy: systemData.information?.economy ?? 'Unknown',
       secondEconomy: systemData.information?.secondEconomy ?? null
     };
-    const economyText = systemInfo.secondEconomy
-      ? `${systemInfo.economy} / ${systemInfo.secondEconomy}`
-      : systemInfo.economy;
 
     // === Star & Planet Data ===
     const stars = astro.stars || [];
     const mainStar = stars[0]?.name ?? 'Unknown';
     const planets = astro.planets || [];
     const numPlanets = planets.length;
-    const numELW = planets.filter(p => p.subType === 'ELW').length;
-    const numWW = planets.filter(p => p.subType === 'WW').length;
+    const numELW = planets.filter(p => p.subType?.toLowerCase().includes('elw')).length;
+    const numWW = planets.filter(p => p.subType?.toLowerCase().includes('ww')).length;
     const numGasGiants = planets.filter(p => p.subType?.toLowerCase().includes('gas giant')).length;
     const distanceFromSol = astro.distanceFromSol != null ? astro.distanceFromSol.toFixed(2) : 'Unknown';
 
     // === Rings ===
-    const rings = stars.flatMap(s => s.rings || []);
-    const ringsText = rings.length
-      ? rings.map(r => `* ${r.name} (${r.type})`).join('\n')
-      : "None";
+    const rings = stars.flatMap(s => s.rings || s.belts || []);
+    const ringsText = rings.length ? rings.map(r => `* ${r.name} (${r.type})`).join('\n') : "None";
 
     // === Starports ===
     const stations = astro.stations || [];
     const starports = stations.filter(s => {
       const type = (s.type || '').toLowerCase();
-      return type.includes('coriolis') || type.includes('orbis') || type.includes('ocellus') || type.includes('starport') || type.includes('outpost');
+      return ['coriolis','orbis','ocellus','starport','outpost'].some(t => type.includes(t));
     });
     const starportText = starports.length
       ? starports.map(s => `* ${s.name} ${simplePads(s)}`).join('\n')
       : "None";
 
     // === Odyssey Settlements ===
-    const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase() === 'odysseysettlement');
+    const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
     const totalOdy = odysseySettlements.length;
     const hasL = odysseySettlements.some(s => (s.padsL || 0) > 0) ? '✅' : '❌';
     const hasM = odysseySettlements.some(s => (s.padsM || 0) > 0) ? '✅' : '❌';
@@ -283,9 +278,7 @@ if (content.toLowerCase().startsWith('/xsystem')) {
           const carrierLabel = isSquadron
             ? `*  **Squadron Carrier** [${c.callsign}]`
             : `*  **${capitalizeAll(c.name ?? 'Unnamed')}** [${c.callsign}]`;
-          return isSquadron
-            ? `${carrierLabel}${docking ? `\nDocking: ${docking}` : ''}`
-            : `${carrierLabel}${docking ? `\nDocking: ${docking}` : ''}`;
+          return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
         }).join('\n\n')
       : "None";
 
@@ -306,17 +299,17 @@ if (content.toLowerCase().startsWith('/xsystem')) {
       : 'No faction data';
 
     // === Build Embed ===
-    const embed = {
-      title: `🌌 System ${systemData.name || systemName}`,
-      url: systemData.url,
-      color: 0x00bfff,
-      fields: [
+    const embed = new EmbedBuilder()
+      .setTitle(`🌌 System ${systemData.name || systemName}`)
+      .setURL(systemData.url)
+      .setColor(0x00bfff)
+      .addFields(
         { name: "🆔 System ID", value: `${systemInfo.id}`, inline: true },
         { name: "🏛️ Government", value: systemInfo.government, inline: true },
         { name: "⚖️ Allegiance", value: systemInfo.allegiance, inline: true },
         { name: "🔒 Security", value: systemInfo.security, inline: true },
         { name: "👥 Population", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
-        { name: "💰 Economy", value: economyText, inline: true },
+        { name: "💰 Economy", value: systemInfo.secondEconomy ? `${systemInfo.economy} / ${systemInfo.secondEconomy}` : systemInfo.economy, inline: true },
 
         { name: "⭐ Main Star", value: mainStar, inline: true },
         { name: "📏 Distance from Sol", value: `${distanceFromSol} ly`, inline: true },
@@ -331,16 +324,15 @@ if (content.toLowerCase().startsWith('/xsystem')) {
 
         { name: `🛰️ Carriers (Total: ${carriers.length})`, value: carrierText, inline: false },
         { name: "Factions", value: factionText, inline: false }
-      ],
-      footer: { text: `Zatražio/la: ${message.author.tag} | v1.3.0` },
-      timestamp: new Date()
-    };
+      )
+      .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.5.1` })
+      .setTimestamp();
 
     message.reply({ embeds: [embed] });
 
   } catch (err) {
     console.error(err);
-    message.reply('❌ /xsystem Greška pri dohvaćanju podataka o sustavu ili frakcijama.');
+    message.reply('❌ Greška pri dohvaćanju podataka o sustavu ili frakcijama.');
   }
 }
 
