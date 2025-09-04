@@ -301,7 +301,7 @@ const starportText = starports.length
       // Conditionally add a space before planetInfo
       return `* ${s.name} ${pads}${planetInfo ? ' ' + planetInfo : ''} - *${dist}*`;
     }).join('\n')
-  : "None";
+  : "Nema orbitalnih ili planetarnih starporta";
 
 
 
@@ -314,7 +314,7 @@ if (totalOdy > 0) {
   // Count number of settlements with L and M pads
   const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
   const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
-  odysseyText = `* Settlements with L pads: ${countL}\n* Settlements with M pads: ${countM}`;
+  odysseyText = `* Settlementi s L pad: ${countL}\n* Settlementi s M pad: ${countM}`;
 }
 
     // === Carriers ===
@@ -330,23 +330,23 @@ if (totalOdy > 0) {
             : `*  **${capitalizeAll(c.name ?? 'Unnamed')}** [${c.callsign}]`;
           return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
         }).join('\n')
-      : "None";
+      : "Nema carriera";
 
-    // === Factions ===
-    const factions = factionData.factions || [];
-    const controllingFactionId = factionData.controllingFaction?.id;
-    const factionText = factions.length
-      ? factions.map(f => {
+      const factions = factionData.factions || [];
+      const controllingFactionId = factionData.controllingFaction?.id;
+      const factionText = factions
+        .filter(f => f.influence > 0)
+        .map(f => {
           const infPercent = (f.influence * 100).toFixed(2);
           const activeStates = f.activeStates?.map(s => s.state).join(', ');
           let prefix = "";
           if (f.id === controllingFactionId) prefix += "👑 ";
           if (f.isPlayer) prefix += "👥 ";
-          return activeStates
-            ? `* ${prefix}${f.name}: ${infPercent}% | ${activeStates}`
-            : `* ${prefix}${f.name}: ${infPercent}%`;
-        }).join('\n')
-      : 'No faction data';
+          return activeStates 
+            ? `• ${prefix}${f.name}: ${infPercent}% | ${activeStates}`
+            : `• ${prefix}${f.name}: ${infPercent}%`;
+        })
+        .join('\n') || "Nema podataka o frakcijama";
 
     // === Build Embed ===
     const embed = new EmbedBuilder()
