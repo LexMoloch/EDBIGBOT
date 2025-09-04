@@ -55,7 +55,7 @@ client.on('messageCreate', async (message) => {
           { name: "📅 Zadnjih 24 sata", value: `${(t?.day ?? 0).toLocaleString('hr-HR')}`, inline: true },
           { name: "Brodovi zadnjih 24 sata", value: breakdownText, inline: false }
         )
-        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.2` })
+        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.0` })
         .setTimestamp();
 
       message.reply({ embeds: [embed] });
@@ -108,7 +108,7 @@ client.on('messageCreate', async (message) => {
         .setDescription(`🔹 **${system1}** ↔️ **${system2}**\n📐 ${distance} Ly`)
         .setColor(0x00bfff)
         .setTimestamp()
-        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.2` });
+        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.0` });
 
       message.reply({ embeds: [embed] });
 
@@ -178,9 +178,9 @@ client.on('messageCreate', async (message) => {
           { name: "🔒 Sigurnost", value: systemInfo.security, inline: true },
           { name: "👥 Populacija", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
           { name: "💰 Ekonomija", value: economyText, inline: true },
-          { name: "🛡️ Frakcije i utjecaj", value: factionText, inline: false }
+          { name: "Frakcije", value: factionText, inline: false }
         ],
-        footer: { text: `v1.3.2` },
+        footer: { text: `v1.3.0` },
         timestamp: new Date()
       };
 
