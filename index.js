@@ -73,7 +73,10 @@ client.on('messageCreate', async (message) => {
       const res = await fetch(edsmUrl);
       const data = await res.json();
 	  
-	if (!validateSystem(systemData, systemName, message)) return;
+	if (!data || !data.traffic) {
+		return message.reply(`❌ Sustav **${systemName}** nije pronađen ili nema podataka o prometu.`);
+	}
+
 	  
       const t = data.traffic;
 
@@ -267,7 +270,10 @@ if (content.toLowerCase().startsWith('/xsystem')) {
     if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
     const astro = edastroData || {};
 	
-	if (!validateSystem(systemData, systemName, message)) return;
+    // ✅ Check if system exists
+    if (!systemRes.ok) return message.reply(`❌ Sustav **${systemName}** nije pronađen.`);
+    const systemData = await systemRes.json();
+    if (!validateSystem(systemData, systemName, message)) return;
 
 
     // === EDSM Info ===
