@@ -263,6 +263,9 @@ if (content.toLowerCase().startsWith('/xsystem')) {
       fetch(EDSM_FACTIONS_URL),
       fetch(EDASTRO_URL)
     ]);
+	
+	// ✅ Check if system exists
+	if (!systemRes.ok) return message.reply(`❌ Sustav **${systemName}** nije pronađen.`);
 
     const systemData = await systemRes.json() || {};
     const factionData = await factionRes.json() || {};
@@ -270,9 +273,6 @@ if (content.toLowerCase().startsWith('/xsystem')) {
     if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
     const astro = edastroData || {};
 	
-    // ✅ Check if system exists
-    if (!systemRes.ok) return message.reply(`❌ Sustav **${systemName}** nije pronađen.`);
-    const systemData = await systemRes.json();
     if (!validateSystem(systemData, systemName, message)) return;
 
 
