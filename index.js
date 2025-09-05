@@ -4,6 +4,40 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// 🔍 Helper: Validate EDSM system response
+function validateSystem(systemData, systemName, message) {
+  if (!systemData || !systemData.name) {
+    message.reply(`❌ Sustav **${systemName}** nije pronađen.`);
+    return false;
+  }
+  return true;
+}
+
+// Capitalize each word normally
+function capitalizeWords(str) {
+  return str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : str;
+}
+
+// Capitalize all letters
+function capitalizeAll(str) {
+  return str ? str.split(' ').map(w => w.toUpperCase()).join(' ') : str;
+}
+
+// Safe value to string or fallback
+const safe = v => v != null ? String(v) : "Unknown";
+
+// Determine simple pad indicator for stations
+function simplePads(station) {
+  const L = station.padsL || 0;
+  const M = station.padsM || 0;
+  const S = station.padsS || 0;
+  if (L > 0) return "[L]";
+  if (L === 0 && M > 0) return "[M]";
+  if (L === 0 && M === 0 && S > 0) return "[S]";
+  return "";
+};
+
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -11,6 +45,7 @@ const client = new Client({
     GatewayIntentBits.MessageContent
   ]
 });
+
 
 client.once('ready', () => {
   console.log(`✅ Prijavljen kao ${client.user.tag}`);
@@ -37,6 +72,9 @@ client.on('messageCreate', async (message) => {
     try {
       const res = await fetch(edsmUrl);
       const data = await res.json();
+	  
+	if (!validateSystem(systemData, systemName, message)) return;
+	  
       const t = data.traffic;
 
       const breakdown = data.breakdown || {};
@@ -142,6 +180,9 @@ if (content.toLowerCase().startsWith('/system')) {
       const systemData = await systemRes.json();
       const factionData = await factionRes.json();
 
+	  if (!validateSystem(systemData, systemName, message)) return;
+
+
       const systemInfo = {
         id: systemData.id ?? 'Nepoznato',
         government: systemData.government ?? systemData.information?.government ?? 'Nepoznato',
@@ -201,30 +242,6 @@ if (content.toLowerCase().startsWith('/system')) {
 // 🌌 /xsystem command (EDAstro + EDSM full)
 if (content.toLowerCase().startsWith('/xsystem')) {
 
-// Capitalize each word normally
-function capitalizeWords(str) {
-  return str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : str;
-}
-
-// Capitalize all letters
-function capitalizeAll(str) {
-  return str ? str.split(' ').map(w => w.toUpperCase()).join(' ') : str;
-}
-
-// Safe value to string or fallback
-const safe = v => v != null ? String(v) : "Unknown";
-
-// Determine simple pad indicator for stations
-function simplePads(station) {
-  const L = station.padsL || 0;
-  const M = station.padsM || 0;
-  const S = station.padsS || 0;
-  if (L > 0) return "[L]";
-  if (L === 0 && M > 0) return "[M]";
-  if (L === 0 && M === 0 && S > 0) return "[S]";
-  return "";
-};
-
   const parts = content.trim().split(/\s+/);
   const systemName = parts.slice(1).join(' '); // everything after /xsystem
 
@@ -249,6 +266,9 @@ function simplePads(station) {
     let edastroData = await edastroRes.json() || {};
     if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
     const astro = edastroData || {};
+	
+	if (!validateSystem(systemData, systemName, message)) return;
+
 
     // === EDSM Info ===
     const systemInfo = {
