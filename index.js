@@ -4,12 +4,14 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Clean colonisation garbage
+// Clean colonisation garbage from starport names (robust)
 function cleanStationName(name) {
   if (!name) return "Unknown";
-  return name.replace(/^\$EXT_PANEL_/, '').trim();
+  // Strip BOM / invisible leading characters (safe list)
+  name = name.replace(/^[\s\u0000-\u001F\u007F\uFEFF\u00A0\u200B\u200C\u200D\u200E\u200F]+/, '');
+  // Remove only the "$EXT_PANEL_" prefix (case-insensitive) and keep the rest
+  return name.replace(/^\$EXT_PANEL_/i, '').trim();
 }
-
 // 🔍 Helper: Validate EDSM system response
 function validateSystem(systemData, systemName, message) {
   if (!systemData || !systemData.name) {
@@ -428,4 +430,5 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
