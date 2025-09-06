@@ -4,13 +4,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Clean colonisation garbage from starport names (robust)
+// Keep only text starting from "ColonisationShip"
 function cleanStationName(name) {
   if (!name) return "Unknown";
-  // Remove any leading whitespace/control characters
-  name = name.replace(/^[\s\x00-\x1F\x7F]+/, '');
-  // Remove $EXT_PANEL_ prefix anywhere at the start
-  return name.replace(/^\$?EXT_PANEL_/i, '').trim();
+  const idx = name.indexOf("ColonisationShip");
+  return idx >= 0 ? name.slice(idx).trim() : name.trim();
 }
 
 // 🔍 Helper: Validate EDSM system response
@@ -431,6 +429,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
