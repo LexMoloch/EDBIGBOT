@@ -364,7 +364,7 @@ const carrierText = carriers.length
           : '';
         const carrierLabel = isSquadron
           ? `*  **Squadron Carrier** [${c.callsign}]`
-          : `*  **${capitalizeAll(c.name ?? 'Unnamed')}** [${c.callsign}]`;
+          : `*  ${capitalizeAll(c.name ?? 'Unnamed')} [${c.callsign}]`;
         return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
       });
       if (carriers.length > maxDisplay) {
@@ -430,6 +430,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
