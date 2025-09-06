@@ -4,6 +4,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Clean colonisation garbage
+function cleanStationName(name) {
+  if (!name) return "Unknown";
+  return name.replace(/^\$EXT_PANEL_/, '').trim();
+}
+
 // 🔍 Helper: Validate EDSM system response
 function validateSystem(systemData, systemName, message) {
   if (!systemData || !systemData.name) {
@@ -324,6 +330,7 @@ const starportText = starports.length
       // Only show [PLANET bodyName] if type is exactly "Planetary Outpost"
       const planetInfo = s.type === "Planetary Outpost" && s.bodyName ? `[PLANETARY, ${s.bodyName}]` : '';
       const dist = s.distanceToArrival != null ? Math.round(s.distanceToArrival) + " ls" : "Unknown";
+      const name = cleanStationName(s.name);  // ✅ cleaned	  
       // Conditionally add a space before planetInfo
       return `* ${s.name} ${pads}${planetInfo ? ' ' + planetInfo : ''} - *${dist}*`;
     }).join('\n')
@@ -421,3 +428,4 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
