@@ -5,14 +5,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Keep everything starting from "ColonisationShip", ignoring leading junk
-// Strip everything before the first semicolon
+// Remove everything before and including $EXT_PANEL_ if present, keep the rest
 function cleanStationName(name) {
   if (!name) return "Unknown";
-  const parts = name.split(';');
-  if (parts.length <= 1) return name.trim();  // no semicolon, return as-is
-  // Remove everything before the first semicolon and include the text after
-  return parts.slice(0).join(';').trim();
+  // Remove any leading whitespace or hidden characters before $EXT_PANEL_
+  return name.replace(/^[\s\u0000-\u001F\u007F\uFEFF\u00A0\u200B]*\$EXT_PANEL_/i, '').trim();
 }
+
 
 // 🔍 Helper: Validate EDSM system response
 function validateSystem(systemData, systemName, message) {
@@ -431,6 +430,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
