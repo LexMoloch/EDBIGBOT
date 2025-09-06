@@ -6,10 +6,10 @@ dotenv.config();
 
 // Keep everything starting from "ColonisationShip", ignoring leading junk
 // Remove everything before and including $EXT_PANEL_ if present, keep the rest
+// Clean $EXT_PANEL_ prefix from station names
 function cleanStationName(name) {
   if (!name) return "Unknown";
-  // Remove any leading whitespace or hidden characters before $EXT_PANEL_
-  return name.replace(/^[\s\u0000-\u001F\u007F\uFEFF\u00A0\u200B]*\$EXT_PANEL_/i, '').trim();
+  return name.replace(/^\$EXT_PANEL_/i, '').trim();
 }
 
 
@@ -333,9 +333,9 @@ const starportText = starports.length
       // Only show [PLANET bodyName] if type is exactly "Planetary Outpost"
       const planetInfo = s.type === "Planetary Outpost" && s.bodyName ? `[PLANETARY, ${s.bodyName}]` : '';
       const dist = s.distanceToArrival != null ? Math.round(s.distanceToArrival) + " ls" : "Unknown";
-      const name = cleanStationName(s.name);  // ✅ cleaned	  
+      const cleanedName = cleanStationName(s.name); 
       // Conditionally add a space before planetInfo
-      return `* ${s.name} ${pads}${planetInfo ? ' ' + planetInfo : ''} - *${dist}*`;
+      return `* ${cleanedName} ${pads}${planetInfo ? ' ' + planetInfo : ''} - *${dist}*`;
     }).join('\n')
   : "Nema orbitalnih ili planetarnih starporta";
 
@@ -430,6 +430,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
