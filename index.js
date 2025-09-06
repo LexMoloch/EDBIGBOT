@@ -5,11 +5,13 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Keep everything starting from "ColonisationShip", ignoring leading junk
+// Strip everything before the first semicolon
 function cleanStationName(name) {
   if (!name) return "Unknown";
-  // Match the first occurrence of "ColonisationShip" ignoring any leading characters
-  const match = name.match(/ColonisationShip.*$/);
-  return match ? match[0].trim() : name.trim();
+  const parts = name.split(';');
+  if (parts.length <= 1) return name.trim();  // no semicolon, return as-is
+  // Remove everything before the first semicolon and include the text after
+  return parts.slice(0).join(';').trim();
 }
 
 // 🔍 Helper: Validate EDSM system response
@@ -429,6 +431,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
