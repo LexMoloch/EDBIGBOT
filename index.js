@@ -335,12 +335,12 @@ const starportText = starports.length
     const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
     const totalOdy = odysseySettlements.length;
 
-let odysseyText = "No landable settlements";
+let odysseyText = "Nema settlementa";
 if (totalOdy > 0) {
   // Count number of settlements with L and M pads
   const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
   const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
-  odysseyText = `* Settlementi s L pad: ${countL}\n* Settlementi s M pad: ${countM}`;
+  odysseyText = `* Settlementi s L pad: ${countL}\n* Settlementi samo s M pad: ${countM}`;
 }
 
 // === Carriers ===
@@ -418,5 +418,6 @@ const carrierText = carriers.length
 
 
 });
+
 
 client.login(process.env.DISCORD_BOT_TOKEN);
