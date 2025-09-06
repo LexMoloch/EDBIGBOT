@@ -4,11 +4,12 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Keep only text starting from "ColonisationShip"
+// Keep everything starting from "ColonisationShip", ignoring leading junk
 function cleanStationName(name) {
   if (!name) return "Unknown";
-  const idx = name.indexOf("ColonisationShip");
-  return idx >= 0 ? name.slice(idx).trim() : name.trim();
+  // Match the first occurrence of "ColonisationShip" ignoring any leading characters
+  const match = name.match(/ColonisationShip.*$/);
+  return match ? match[0].trim() : name.trim();
 }
 
 // 🔍 Helper: Validate EDSM system response
@@ -338,7 +339,6 @@ const starportText = starports.length
   : "Nema orbitalnih ili planetarnih starporta";
 
 
-
     // === Odyssey Settlements ===
     const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
     const totalOdy = odysseySettlements.length;
@@ -429,6 +429,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
