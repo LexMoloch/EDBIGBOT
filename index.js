@@ -1,6 +1,8 @@
 import fetch from 'node-fetch';
-import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
+import { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { createCanvas } from "canvas";
 import dotenv from 'dotenv';
+import FormData from 'form-data';
 
 dotenv.config();
 
@@ -131,6 +133,141 @@ client.on('messageCreate', async (message) => {
       const factionData = await fetchAllSystemData(factionSystems);
       const rivalData = await fetchAllSystemData(rivalSystems);
 
+
+      // ---------------- CANVAS SCALE ----------------
+      const canvasWidth = 2000;
+      const canvasHeight = 2000;
+      const dotRadius = 5;
+      const labelDistance = 10; // ly minimum distance to other systems to label
+      const allCoords = [...factionData, ...rivalData];
+      const xs = allCoords.map(s => s.x), zs = allCoords.map(s => s.z);
+      const rawMinX = Math.min(...xs), rawMaxX = Math.max(...xs);
+      const rawMinZ = Math.min(...zs), rawMaxZ = Math.max(...zs);
+      const padX = (rawMaxX - rawMinX) * 0.1;
+      const padZ = (rawMaxZ - rawMinZ) * 0.1;
+      const minX = rawMinX - padX, maxX = rawMaxX + padX;
+      const minZ = rawMinZ - padZ, maxZ = rawMaxZ + padZ;
+      const scaleX = canvasWidth / (maxX - minX);
+      const scaleZ = canvasHeight / (maxZ - minZ);
+      const scale = Math.min(scaleX, scaleZ);
+      const offsetX = (canvasWidth - (maxX - minX) * scale) / 2;
+      const offsetZ = (canvasHeight - (maxZ - minZ) * scale) / 2;
+
+      // ---------------- CANVAS ----------------
+      const canvas = createCanvas(canvasWidth, canvasHeight);
+      const ctx = canvas.getContext("2d");
+
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+      // Grid
+      const gridInterval = 50;
+      for (let xVal = Math.floor(minX / gridInterval) * gridInterval; xVal <= maxX; xVal += gridInterval) {
+        const xPos = offsetX + (xVal - minX) * scale;
+        ctx.strokeStyle = "#555"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(xPos, 0); ctx.lineTo(xPos, canvasHeight); ctx.stroke();
+        ctx.fillStyle = "#FFFFFF"; ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
+        ctx.fillText(`${xVal}`, xPos, 2);
+      }
+      for (let zVal = Math.floor(minZ / gridInterval) * gridInterval; zVal <= maxZ; zVal += gridInterval) {
+        const zPos = offsetZ + (maxZ - zVal) * scale;
+        ctx.strokeStyle = "#555"; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(0, zPos); ctx.lineTo(canvasWidth, zPos); ctx.stroke();
+        ctx.fillStyle = "#FFFFFF"; ctx.font = "14px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
+        ctx.fillText(`${zVal}`, 2, zPos);
+      }
+
+      // Axis lines & Sol
+      const solX = offsetX + (0 - minX) * scale;
+      const solZ = offsetZ + (maxZ - 0) * scale;
+      ctx.strokeStyle = "#8888FF"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(solX, 0); ctx.lineTo(solX, canvasHeight); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, solZ); ctx.lineTo(canvasWidth, solZ); ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(solX, solZ, dotRadius + 2, 0, Math.PI*2);
+      ctx.fillStyle = "#FFFF00";
+      ctx.fill();
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText("Sol", solX, solZ + dotRadius + 2);
+
+      const allSystems = [...factionData, ...rivalData];
+
+      // ---------------- HELPERS ----------------
+      const getSystemColor = (system, type) => {
+        if (type === "FACTION") return system.controllingFaction === factions.FACTION.name ? factions.FACTION.colorControlled : factions.FACTION.colorUncontrolled;
+        return system.controllingFaction === factions.RIVAL.name ? factions.RIVAL.colorControlled : factions.RIVAL.colorUncontrolled;
+      };
+
+      const isNearbyEnemy = (system, enemyData) => enemyData.some(e => Math.sqrt((system.x - e.x)**2 + (system.y - e.y)**2 + (system.z - e.z)**2) <= nearbyLimit);
+
+      // ---------------- DRAW SYSTEMS ----------------
+      function drawSystems(data, type) {
+        data.forEach(s => {
+          const x = offsetX + (s.x - minX) * scale;
+          const z = offsetZ + (maxZ - s.z) * scale;
+          const color = getSystemColor(s, type);
+
+          ctx.beginPath();
+          ctx.arc(x, z, dotRadius, 0, Math.PI*2);
+          ctx.fillStyle = color;
+          ctx.fill();
+
+          const minDist = allSystems.filter(o => o !== s).map(o => Math.hypot(s.x - o.x, s.y - o.y, s.z - o.z)).reduce((a,b)=>Math.min(a,b), Infinity);
+          const nearbyEnemies = type === "FACTION" ? isNearbyEnemy(s, rivalData) : rivalData.filter(r => Math.hypot(s.x - r.x, s.y - r.y, s.z - r.z) <= nearbyLimit).length > 0;
+
+          if (minDist >= labelDistance || nearbyEnemies) {
+            ctx.fillStyle = color;
+            ctx.font = "10px sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "top";
+            ctx.fillText(s.name, x, z + dotRadius + 2);
+          }
+
+          if (nearbyEnemies) {
+            ctx.beginPath();
+            ctx.arc(x, z, dotRadius + 4, 0, Math.PI*2);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        });
+      }
+
+      drawSystems(factionData, "FACTION");
+      drawSystems(rivalData, "RIVAL");
+
+      // ---------------- LEGEND ----------------
+      const legendPadding = 20;
+      const circleRadius = 10;
+      const lineHeight = 30;
+      ctx.font = "18px sans-serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+
+      const legendItems = [
+        { text: `${factions.FACTION.name} controlled`, color: factions.FACTION.colorControlled },
+        { text: `${factions.FACTION.name} uncontrolled`, color: factions.FACTION.colorUncontrolled },
+        { text: `${factions.RIVAL.name} controlled`, color: factions.RIVAL.colorControlled },
+        { text: `${factions.RIVAL.name} uncontrolled`, color: factions.RIVAL.colorUncontrolled },
+      ];
+
+      let startX = canvasWidth - 300 - legendPadding;
+      let startY = canvasHeight - (legendItems.length * lineHeight) - legendPadding;
+
+      legendItems.forEach((item, i) => {
+        const y = startY + i * lineHeight;
+        ctx.beginPath();
+        ctx.arc(startX + circleRadius, y, circleRadius, 0, Math.PI * 2);
+        ctx.fillStyle = item.color;
+        ctx.fill();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(item.text, startX + circleRadius * 2 + 8, y);
+      });
+      
       // ---------------- ANALYSIS ----------------
       const factionWithRival = factionData
         .filter(f => rivalData.some(r => r.name === f.name))
@@ -195,14 +332,21 @@ client.on('messageCreate', async (message) => {
       });
 
 
+      // Build the embed
+      const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'BIG_map.png' });
+
       const embed = new EmbedBuilder()
-        .setTitle(`${factionName} vs ${rivalName} analysis`)
+        .setTitle(`${factions.FACTION.name} vs ${factions.RIVAL.name} map`)
         .setColor(0xFFA500)
         .addFields(fields)
+        .setImage('attachment://BIG_map.png')
         .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.0` })
         .setTimestamp();
 
-      await message.channel.send({ embeds: [embed] });
+      // Send directly via Discord.js
+      await message.reply({ embeds: [embed], files: [attachment] });
+
+
 
     } catch (err) {
       console.error(err);
