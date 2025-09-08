@@ -150,6 +150,7 @@ client.on('messageCreate', async (message) => {
           }))
           .filter(f => f.dist <= nearbyLimit)
           .sort((a, b) => a.dist - b.dist);
+
         if (nearbyFaction.length > 0) {
           nearbyRivalMap[rivalSys.name] = nearbyFaction;
         }
@@ -158,6 +159,7 @@ client.on('messageCreate', async (message) => {
       const fields = [];
 
       function formatSystemListLimited(systems, maxChars = 1000) {
+        if (!systems || systems.length === 0) return "* No systems";
         let text = "", count = 0;
         for (const s of systems) {
           const line = `${s}\n`;
@@ -170,34 +172,28 @@ client.on('messageCreate', async (message) => {
         return text;
       }
 
-      if (Object.keys(nearbyRivalMap).length > 0) {
-        const nearbyLines = Object.entries(nearbyRivalMap).map(([rName, nearby]) => {
-          let text = `**${rName}**\n`;
-          const first = nearby[0];
-          text += `${factions.RIVAL.prefix}${first.name} - **${first.dist.toFixed(1)} ly**\n`;
-          if (nearby.length > 1) {
-            text += `${factions.RIVAL.prefix}... ${nearby.length - 1} more`;
-          }
-          return text;
-        });
-        const nearbyText = formatSystemListLimited(nearbyLines, 1000);
-        fields.push({
-          name: `${factions.FACTION.name} system(s) ≤${nearbyLimit} ly to ${factions.RIVAL.name}'s:`,
-          value: nearbyText,
-          inline: false
-        });
-      }
+      const nearbyLines = Object.entries(nearbyRivalMap).map(([rName, nearby]) => {
+        let text = `**${rName}**\n`;
+        const first = nearby[0];
+        text += `${factions.RIVAL.prefix}${first.name} - **${first.dist.toFixed(1)} ly**\n`;
+        if (nearby.length > 1) {
+          text += `${factions.RIVAL.prefix}... ${nearby.length - 1} more`;
+        }
+        return text;
+      });
 
-      if (factionWithRival.length > 0) {
-        const bigText = formatSystemListLimited(
-          factionWithRival.map(s => `${factions.FACTION.prefix}${s}`)
-        );
-        fields.push({
-          name: `${factions.FACTION.name}-controlled systems with ${factions.RIVAL.name} present:`,
-          value: bigText,
-          inline: false
-        });
-      }
+      fields.push({
+        name: `${factions.FACTION.name} system(s) ≤${nearbyLimit} ly to ${factions.RIVAL.name}'s:`,
+        value: nearbyLines.length > 0 ? formatSystemListLimited(nearbyLines, 1000) : "* No systems",
+        inline: false
+      });
+
+      fields.push({
+        name: `${factions.FACTION.name}-controlled systems with ${factions.RIVAL.name} present:`,
+        value: factionWithRival.length > 0 ? formatSystemListLimited(factionWithRival.map(s => `${factions.FACTION.prefix}${s}`)) : "* No systems",
+        inline: false
+      });
+
 
       const embed = new EmbedBuilder()
         .setTitle(`${factionName} vs ${rivalName} analysis`)
@@ -210,7 +206,7 @@ client.on('messageCreate', async (message) => {
 
     } catch (err) {
       console.error(err);
-      return message.reply(`${err.message}`);
+      return message.reply(`❌ Error: ${err.message}`);
     }
   }
 
@@ -581,7 +577,6 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
-
 
 
 
