@@ -123,7 +123,7 @@ client.on('messageCreate', async (message) => {
         RIVAL: { name: rivalName, prefix: "* " }
       };
 
-      const nearbyLimit = 200;
+      const nearbyLimit = 30;
 
       // ---------------- MAIN ----------------
       const factionSystems = await fetchFactionSystems(factionName);
@@ -210,7 +210,7 @@ client.on('messageCreate', async (message) => {
 
     } catch (err) {
       console.error(err);
-      return message.reply(`❌ Error: ${err.message}`);
+      return message.reply(`${err.message}`);
     }
   }
 
@@ -581,6 +581,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
