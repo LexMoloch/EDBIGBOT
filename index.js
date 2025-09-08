@@ -120,10 +120,22 @@ client.on('messageCreate', async (message) => {
       }
 
       // ---------------- CONFIG ----------------
+      // ---------------- SYSTEM LABELS & COLORS ----------------
       const factions = {
-        FACTION: { name: factionName, prefix: "* " },
-        RIVAL: { name: rivalName, prefix: "* " }
+        FACTION: {
+          name: factionName,
+          colorControlled: "#7CFC00",    // LawnGreen – bright but readable
+          colorUncontrolled: "#228B22",  // ForestGreen – darker, readable
+          prefix: "* "
+        },
+        RIVAL: {
+          name: rivalName,
+          colorControlled: "#FF6347",    // Tomato – bright red-orange
+          colorUncontrolled: "#B22222",  // DarkRed – darker, readable
+          prefix: "* "
+        }
       };
+      
 
       const nearbyLimit = 30;
 
@@ -721,6 +733,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
