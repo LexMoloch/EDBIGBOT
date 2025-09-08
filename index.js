@@ -217,37 +217,47 @@ client.on('messageCreate', async (message) => {
       const isNearbyEnemy = (system, enemyData) => enemyData.some(e => Math.sqrt((system.x - e.x)**2 + (system.y - e.y)**2 + (system.z - e.z)**2) <= nearbyLimit);
 
       // ---------------- DRAW SYSTEMS ----------------
-      function drawSystems(data, type) {
-        data.forEach(s => {
-          const x = offsetX + (s.x - minX) * scale;
-          const z = offsetZ + (maxZ - s.z) * scale;
-          const color = getSystemColor(s, type);
+function drawSystems(data, type) {
+  data.forEach(s => {
+    const x = offsetX + (s.x - minX) * scale;
+    const z = offsetZ + (maxZ - s.z) * scale;
+    const color = getSystemColor(s, type);
 
-          ctx.beginPath();
-          ctx.arc(x, z, dotRadius, 0, Math.PI*2);
-          ctx.fillStyle = color;
-          ctx.fill();
+    // Draw system dot
+    ctx.beginPath();
+    ctx.arc(x, z, dotRadius, 0, Math.PI * 2);
+    ctx.fillStyle = color;
+    ctx.fill();
 
-          const minDist = allSystems.filter(o => o !== s).map(o => Math.hypot(s.x - o.x, s.y - o.y, s.z - o.z)).reduce((a,b)=>Math.min(a,b), Infinity);
-          const nearbyEnemies = type === "FACTION" ? isNearbyEnemy(s, rivalData) : rivalData.filter(r => Math.hypot(s.x - r.x, s.y - r.y, s.z - r.z) <= nearbyLimit).length > 0;
+    // Compute distance to nearest other system for labeling
+    const minDist = allSystems
+      .filter(o => o !== s)
+      .map(o => Math.hypot(s.x - o.x, s.y - o.y, s.z - o.z))
+      .reduce((a, b) => Math.min(a, b), Infinity);
 
-          if (minDist >= labelDistance || nearbyEnemies) {
-            ctx.fillStyle = color;
-            ctx.font = "10px sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "top";
-            ctx.fillText(s.name, x, z + dotRadius + 2);
-          }
+    // Draw label if far enough from others
+    if (minDist >= labelDistance) {
+      ctx.fillStyle = color;
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      ctx.fillText(s.name, x, z + dotRadius + 2);
+    }
 
-          if (nearbyEnemies) {
-            ctx.beginPath();
-            ctx.arc(x, z, dotRadius + 4, 0, Math.PI*2);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
-            ctx.stroke();
-          }
-        });
-      }
+    // Circle rival systems **controlled by rival AND near any faction system**
+    if (
+      type === "RIVAL" &&
+      s.controllingFaction === factions.RIVAL.name &&
+      isNearbyEnemy(s, factionData)
+    ) {
+      ctx.beginPath();
+      ctx.arc(x, z, dotRadius + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+  });
+}
 
       drawSystems(factionData, "FACTION");
       drawSystems(rivalData, "RIVAL");
@@ -733,6 +743,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
