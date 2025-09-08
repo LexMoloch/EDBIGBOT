@@ -1,6 +1,5 @@
 import fetch from 'node-fetch';
 import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
-import axios from "axios";
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -83,9 +82,10 @@ client.on('messageCreate', async (message) => {
     try {
       // ---------------- FETCH FUNCTIONS ----------------
       async function fetchFactionSystems(name) {
-        const res = await axios.get(`https://elitebgs.app/api/ebgs/v5/factions?name=${encodeURIComponent(name)}`);
-        if (!res.data.docs || res.data.docs.length === 0) throw new Error(`❌ Fakcija "${name}" nije nađena`);
-        return res.data.docs[0].faction_presence.map(p => p.system_name);
+        const res = await fetch(`https://elitebgs.app/api/ebgs/v5/factions?name=${encodeURIComponent(name)}`);
+        const data = await res.json();
+        if (!data.docs || data.docs.length === 0) throw new Error(`❌ Fakcija "${name}" nije nađena`);
+        return data.docs[0].faction_presence.map(p => p.system_name);
       }
 
       async function fetchAllSystemData(systems) {
@@ -99,16 +99,20 @@ client.on('messageCreate', async (message) => {
           const params = new URLSearchParams(systemParams.toString());
           params.append("limit", limit);
           params.append("page", currentPage);
-          const response = await axios.get(`https://elitebgs.app/api/ebgs/v5/systems?${params.toString()}`);
-          allDocs.push(...response.data.docs);
-          if (!response.data.hasNextPage) break;
-          currentPage = response.data.nextPage;
+          const response = await fetch(`https://elitebgs.app/api/ebgs/v5/systems?${params.toString()}`);
+          const data = await response.json();
+          allDocs.push(...data.docs);
+          if (!data.hasNextPage) break;
+          currentPage = data.nextPage;
         }
+
         return allDocs
           .filter(s => s.controlling_minor_faction)
           .map(s => ({
             name: s.name,
-            x: s.x, y: s.y, z: s.z,
+            x: s.x,
+            y: s.y,
+            z: s.z,
             controllingFaction: s.controlling_minor_faction_cased
           }));
       }
