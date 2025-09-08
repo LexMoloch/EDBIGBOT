@@ -66,10 +66,8 @@ client.on('messageCreate', async (message) => {
 
   const content = message.content.trim();
 
-	
-factionmap B.I.G - Balkan Intergalactic Guerilla, Enigma Dyson Syndicate
 
-	
+
   // 🚀 /traffic command
   if (content.toLowerCase().startsWith('/traffic')) {
     const parts = content.split(/\s+/);
@@ -86,12 +84,12 @@ factionmap B.I.G - Balkan Intergalactic Guerilla, Enigma Dyson Syndicate
     try {
       const res = await fetch(edsmUrl);
       const data = await res.json();
-	  
-	if (!data || !data.traffic) {
-		return message.reply(`❌ Sustav **${systemName}** nije pronađen ili nema podataka o prometu.`);
-	}
 
-	  
+  if (!data || !data.traffic) {
+    return message.reply(`❌ Sustav **${systemName}** nije pronađen ili nema podataka o prometu.`);
+  }
+
+
       const t = data.traffic;
 
       const breakdown = data.breakdown || {};
@@ -197,7 +195,7 @@ if (content.toLowerCase().startsWith('/system')) {
       const systemData = await systemRes.json();
       const factionData = await factionRes.json();
 
-	  if (!validateSystem(systemData, systemName, message)) return;
+    if (!validateSystem(systemData, systemName, message)) return;
 
 
       const systemInfo = {
@@ -277,18 +275,18 @@ if (content.toLowerCase().startsWith('/xsystem')) {
       fetch(EDSM_FACTIONS_URL),
       fetch(EDASTRO_URL)
     ]);
-	
+
 
     const systemData = await systemRes.json() || {};
-	
-	if (!validateSystem(systemData, systemName, message)) return;
-	
+
+  if (!validateSystem(systemData, systemName, message)) return;
+
     const factionData = await factionRes.json() || {};
     let edastroData = await edastroRes.json() || {};
     if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
     const astro = edastroData || {};
-	
-    
+
+
 
     // === EDSM Info ===
     const systemInfo = {
@@ -371,7 +369,7 @@ const carrierText = carriers.length
           ? `*  **Squadron Carrier** [${c.callsign}]`
           : `*  ${capitalizeAll(c.name ?? 'Unnamed')} [${c.callsign}]`;
       //  return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
-	    return docking ? `${carrierLabel}` : carrierLabel;
+      return docking ? `${carrierLabel}` : carrierLabel;
       });
       if (carriers.length > maxDisplay) {
         displayed.push(`* ...${carriers.length - maxDisplay} more`);
@@ -416,7 +414,7 @@ const carrierText = carriers.length
         { name: "⚪ Gas Giants", value: `${numGasGiants}`, inline: true },
         { name: "🪐 Rings", value: ringsText, inline: false },
         { name: "🏢 Starports", value: starportText, inline: false },
-	{ name: `🏠 Odyssey Settlements (Total: ${totalOdy})`, value: odysseyText, inline: false },
+  { name: `🏠 Odyssey Settlements (Total: ${totalOdy})`, value: odysseyText, inline: false },
         { name: `🛰️ Carriers (Total: ${carriers.length})`, value: carrierText, inline: false },
         { name: "Factions", value: factionText, inline: false }
       )
@@ -436,7 +434,6 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
-
 
 
 
