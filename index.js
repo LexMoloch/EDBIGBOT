@@ -244,7 +244,7 @@ function drawSystems(data, type) {
       ctx.fillText(s.name, x, z + dotRadius + 2);
     }
 
-    // Circle rival systems **controlled by rival AND near any faction system**
+    // Circle rival systems: controlled by rival AND near any faction system
     if (
       type === "RIVAL" &&
       s.controllingFaction === factions.RIVAL.name &&
@@ -256,8 +256,21 @@ function drawSystems(data, type) {
       ctx.lineWidth = 1.5;
       ctx.stroke();
     }
+
+    // Circle faction systems: near any rival-controlled system
+    if (
+      type === "FACTION" &&
+      isNearbyEnemy(s, rivalData.filter(r => r.controllingFaction === factions.RIVAL.name))
+    ) {
+      ctx.beginPath();
+      ctx.arc(x, z, dotRadius + 4, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
   });
 }
+
 
       drawSystems(factionData, "FACTION");
       drawSystems(rivalData, "RIVAL");
@@ -743,6 +756,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
