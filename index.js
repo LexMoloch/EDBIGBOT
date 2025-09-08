@@ -1,7 +1,6 @@
 import fetch from 'node-fetch';
 import { Client, GatewayIntentBits, EmbedBuilder } from 'discord.js';
 import axios from "axios";
-import { createCanvas } from "canvas";
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -437,6 +436,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
