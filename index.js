@@ -66,6 +66,149 @@ client.on('messageCreate', async (message) => {
 
   const content = message.content.trim();
 
+  // 🗺️ /factionmap FACTION, RIVAL
+  if (content.toLowerCase().startsWith('/factionmap')) {
+    const rawParams = content.slice(12).trim();
+    const [factionName, rivalName] = rawParams.split(',').map(s => s.trim());
+
+    if (!factionName || !rivalName) {
+      return message.reply(
+        '⚠️ Unesi (case-sensitive!) nazive fakcije razdvojena zarezom`\n' +
+        'Example: `/factionmap B.I.G. - Balkan Intergalactic Guerilla, Enigma Dyson Syndicate`'
+      );
+    }
+
+    await message.reply(`📝 Generiram analizu za **${factionName}** vs **${rivalName}**... može potrajati ~10s`);
+
+    try {
+      // ---------------- FETCH FUNCTIONS ----------------
+      async function fetchFactionSystems(name) {
+        const res = await axios.get(`https://elitebgs.app/api/ebgs/v5/factions?name=${encodeURIComponent(name)}`);
+        if (!res.data.docs || res.data.docs.length === 0) throw new Error(`❌ Fakcija "${name}" nije nađena`);
+        return res.data.docs[0].faction_presence.map(p => p.system_name);
+      }
+
+      async function fetchAllSystemData(systems) {
+        const allDocs = [];
+        const systemParams = new URLSearchParams();
+        systems.forEach(name => systemParams.append("name", name));
+
+        let currentPage = 1;
+        const limit = 10;
+        while (true) {
+          const params = new URLSearchParams(systemParams.toString());
+          params.append("limit", limit);
+          params.append("page", currentPage);
+          const response = await axios.get(`https://elitebgs.app/api/ebgs/v5/systems?${params.toString()}`);
+          allDocs.push(...response.data.docs);
+          if (!response.data.hasNextPage) break;
+          currentPage = response.data.nextPage;
+        }
+        return allDocs
+          .filter(s => s.controlling_minor_faction)
+          .map(s => ({
+            name: s.name,
+            x: s.x, y: s.y, z: s.z,
+            controllingFaction: s.controlling_minor_faction_cased
+          }));
+      }
+
+      // ---------------- CONFIG ----------------
+      const factions = {
+        FACTION: { name: factionName, prefix: "* " },
+        RIVAL: { name: rivalName, prefix: "* " }
+      };
+
+      const nearbyLimit = 200;
+
+      // ---------------- MAIN ----------------
+      const factionSystems = await fetchFactionSystems(factionName);
+      const rivalSystems = await fetchFactionSystems(rivalName);
+      const factionData = await fetchAllSystemData(factionSystems);
+      const rivalData = await fetchAllSystemData(rivalSystems);
+
+      // ---------------- ANALYSIS ----------------
+      const factionWithRival = factionData
+        .filter(f => rivalData.some(r => r.name === f.name))
+        .map(s => s.name);
+
+      const nearbyRivalMap = {};
+      rivalData.forEach(rivalSys => {
+        if (factionWithRival.includes(rivalSys.name)) return;
+        const nearbyFaction = factionData
+          .map(f => ({
+            name: f.name,
+            dist: Math.sqrt(
+              (f.x - rivalSys.x) ** 2 +
+              (f.y - rivalSys.y) ** 2 +
+              (f.z - rivalSys.z) ** 2
+            )
+          }))
+          .filter(f => f.dist <= nearbyLimit)
+          .sort((a, b) => a.dist - b.dist);
+        if (nearbyFaction.length > 0) {
+          nearbyRivalMap[rivalSys.name] = nearbyFaction;
+        }
+      });
+
+      const fields = [];
+
+      function formatSystemListLimited(systems, maxChars = 1000) {
+        let text = "", count = 0;
+        for (const s of systems) {
+          const line = `${s}\n`;
+          if (text.length + line.length > maxChars) break;
+          text += line;
+          count++;
+        }
+        const remaining = systems.length - count;
+        if (remaining > 0) text += `... ${remaining} more`;
+        return text;
+      }
+
+      if (Object.keys(nearbyRivalMap).length > 0) {
+        const nearbyLines = Object.entries(nearbyRivalMap).map(([rName, nearby]) => {
+          let text = `**${rName}**\n`;
+          const first = nearby[0];
+          text += `${factions.RIVAL.prefix}${first.name} - **${first.dist.toFixed(1)} ly**\n`;
+          if (nearby.length > 1) {
+            text += `${factions.RIVAL.prefix}... ${nearby.length - 1} more`;
+          }
+          return text;
+        });
+        const nearbyText = formatSystemListLimited(nearbyLines, 1000);
+        fields.push({
+          name: `${factions.FACTION.name} system(s) ≤${nearbyLimit} ly to ${factions.RIVAL.name}'s:`,
+          value: nearbyText,
+          inline: false
+        });
+      }
+
+      if (factionWithRival.length > 0) {
+        const bigText = formatSystemListLimited(
+          factionWithRival.map(s => `${factions.FACTION.prefix}${s}`)
+        );
+        fields.push({
+          name: `${factions.FACTION.name}-controlled systems with ${factions.RIVAL.name} present:`,
+          value: bigText,
+          inline: false
+        });
+      }
+
+      const embed = new EmbedBuilder()
+        .setTitle(`${factionName} vs ${rivalName} analysis`)
+        .setColor(0xFFA500)
+        .addFields(fields)
+        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.0` })
+        .setTimestamp();
+
+      await message.channel.send({ embeds: [embed] });
+
+    } catch (err) {
+      console.error(err);
+      return message.reply(`❌ Error: ${err.message}`);
+    }
+  }
 
 
   // 🚀 /traffic command
@@ -434,7 +577,6 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
-
 
 
 
