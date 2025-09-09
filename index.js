@@ -90,34 +90,46 @@ client.on('messageCreate', async (message) => {
         return data.docs[0].faction_presence.map(p => p.system_name);
       }
 
-      async function fetchAllSystemData(systems) {
-        const allDocs = [];
-        const systemParams = new URLSearchParams();
-        systems.forEach(name => systemParams.append("name", name));
+async function fetchAllSystemData(systems) {
+  const allDocs = [];
+  const batchSize = 50; // how many system names per request
 
-        let currentPage = 1;
-        const limit = 10;
-        while (true) {
-          const params = new URLSearchParams(systemParams.toString());
-          params.append("limit", limit);
-          params.append("page", currentPage);
-          const response = await fetch(`https://elitebgs.app/api/ebgs/v5/systems?${params.toString()}`);
-          const data = await response.json();
-          allDocs.push(...data.docs);
-          if (!data.hasNextPage) break;
-          currentPage = data.nextPage;
-        }
+  for (let i = 0; i < systems.length; i += batchSize) {
+    const batch = systems.slice(i, i + batchSize);
+    const params = new URLSearchParams();
+    batch.forEach(name => params.append("name", name));
 
-        return allDocs
-          .filter(s => s.controlling_minor_faction)
-          .map(s => ({
-            name: s.name,
-            x: s.x,
-            y: s.y,
-            z: s.z,
-            controllingFaction: s.controlling_minor_faction_cased
-          }));
-      }
+    let currentPage = 1;
+    const limit = 10;
+
+    while (true) {
+      const batchParams = new URLSearchParams(params.toString());
+      batchParams.append("limit", limit);
+      batchParams.append("page", currentPage);
+
+      const response = await fetch(
+        `https://elitebgs.app/api/ebgs/v5/systems?${batchParams.toString()}`
+      );
+      const data = await response.json();
+
+      allDocs.push(...data.docs);
+
+      if (!data.hasNextPage) break;
+      currentPage = data.nextPage;
+    }
+  }
+
+  return allDocs
+    .filter(s => s.controlling_minor_faction)
+    .map(s => ({
+      name: s.name,
+      x: s.x,
+      y: s.y,
+      z: s.z,
+      controllingFaction: s.controlling_minor_faction_cased
+    }));
+}
+
 
       // ---------------- CONFIG ----------------
       // ---------------- SYSTEM LABELS & COLORS ----------------
@@ -349,7 +361,7 @@ function drawSystems(data, type) {
         const first = nearby[0];
         text += `${factions.RIVAL.prefix}${first.name} - **${first.dist.toFixed(1)} ly**\n`;
         if (nearby.length > 1) {
-          text += `${factions.RIVAL.prefix}... ${nearby.length - 1} more`;
+          text += `${factions.RIVAL.prefix}... ${nearby.length - 1} more\n`;
         }
         return text;
       });
@@ -756,6 +768,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
