@@ -147,7 +147,7 @@ async function fetchAllSystemData(systems) {
           prefix: "* "
         }
       };
-      
+
 
       const nearbyLimit = 30;
 
@@ -372,7 +372,7 @@ function drawSystems(data, type) {
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText(item.text, startX + circleRadius * 2 + 8, y);
     });
-      
+
       // ---------------- ANALYSIS ----------------
       const factionWithRival = factionData
         .filter(f => rivalData.some(r => r.name === f.name))
@@ -459,8 +459,7 @@ function drawSystems(data, type) {
       await loadingMsg.delete().catch(() => {});
       return message.reply(`❌ Greška: ${err.message}`);
     }
-
-
+    }
 
   // 🚀 /traffic command
   if (content.toLowerCase().startsWith('/traffic')) {
@@ -828,22 +827,3 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
