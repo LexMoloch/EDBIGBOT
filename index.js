@@ -378,6 +378,13 @@ function drawSystems(data, type) {
         .filter(f => rivalData.some(r => r.name === f.name))
         .map(s => s.name);
 
+      const factionWithRivalControlled = factionData
+  .filter(f =>
+    f.controllingFaction === factions.FACTION.name && // ✅ your faction controls
+    rivalData.some(r => r.name === f.name)            // ✅ rival is present
+  )
+  .map(s => s.name);
+
       const nearbyRivalMap = {};
       rivalData.forEach(rivalSys => {
         if (factionWithRival.includes(rivalSys.name)) return;
@@ -425,16 +432,18 @@ function drawSystems(data, type) {
       });
 
       fields.push({
-        name: `${factions.FACTION.name} sustav(i) unutar ${nearbyLimit} ly od ${factions.RIVAL.name} **control** sustava:`,
+        name: `${factions.FACTION.name} sustav(i) unutar ${nearbyLimit} ly od ${factions.RIVAL.name} CONTROL sustava:`,
         value: nearbyLines.length > 0 ? formatSystemListLimited(nearbyLines, 1000) : "* Nema sustava",
         inline: false
       });
-
-      fields.push({
-        name: `${factions.FACTION.name} sustavi u kojima se nalazi ${factions.RIVAL.name}:`,
-        value: factionWithRival.length > 0 ? formatSystemListLimited(factionWithRival.map(s => `${factions.FACTION.prefix}${s}`)) : "* Nema sustava",
-        inline: false
-      });
+      
+fields.push({
+  name: `${factions.FACTION.name} CONTROL sustavi u kojima je prisutan ${factions.RIVAL.name}:`,
+  value: factionWithRivalControlled.length > 0
+    ? formatSystemListLimited(factionWithRivalControlled.map(s => `${factions.FACTION.prefix}${s}`))
+    : "* Nema sustava",
+  inline: false
+});
 
 
       // Build the embed
@@ -827,4 +836,5 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
