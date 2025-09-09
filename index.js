@@ -75,7 +75,7 @@ client.on('messageCreate', async (message) => {
     if (!factionName || !rivalName) {
       return message.reply(
         '⚠️ Unesi (case-sensitive!) nazive fakcije razdvojena zarezom`\n' +
-        'Example: `/factionmap B.I.G. - Balkan Intergalactic Guerilla, Enigma Dyson Syndicate`'
+        'Primjer: `/factionmap B.I.G. - Balkan Intergalactic Guerilla, Enigma Dyson Syndicate`'
       );
     }
 
@@ -161,7 +161,7 @@ async function fetchAllSystemData(systems) {
       // ---------------- CANVAS SCALE ----------------
       const canvasWidth = 2000;
       const canvasHeight = 2000;
-      const dotRadius = 5;
+      const dotRadius = 2;
       const labelDistance = 10; // ly minimum distance to other systems to label
       const allCoords = [...factionData, ...rivalData];
       const xs = allCoords.map(s => s.x), zs = allCoords.map(s => s.z);
@@ -185,21 +185,74 @@ async function fetchAllSystemData(systems) {
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
       // Grid
-      const gridInterval = 50;
-      for (let xVal = Math.floor(minX / gridInterval) * gridInterval; xVal <= maxX; xVal += gridInterval) {
-        const xPos = offsetX + (xVal - minX) * scale;
-        ctx.strokeStyle = "#555"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(xPos, 0); ctx.lineTo(xPos, canvasHeight); ctx.stroke();
-        ctx.fillStyle = "#FFFFFF"; ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "top";
-        ctx.fillText(`${xVal}`, xPos, 2);
-      }
-      for (let zVal = Math.floor(minZ / gridInterval) * gridInterval; zVal <= maxZ; zVal += gridInterval) {
-        const zPos = offsetZ + (maxZ - zVal) * scale;
-        ctx.strokeStyle = "#555"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(0, zPos); ctx.lineTo(canvasWidth, zPos); ctx.stroke();
-        ctx.fillStyle = "#FFFFFF"; ctx.font = "14px sans-serif"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
-        ctx.fillText(`${zVal}`, 2, zPos);
-      }
+// mapping helpers
+const mapX = x => offsetX + (x - minX) * scale;
+const mapZ = z => offsetZ + (maxZ - z) * scale;
+
+// grid interval in LY
+const gridInterval = 50;
+
+// compute galaxy coords at canvas edges (exact)
+const leftX  = minX + (0 - offsetX) / scale;                    // at pixel x=0
+const rightX = minX + (canvasWidth - offsetX) / scale;         // at pixel x=canvasWidth
+const topZ   = maxZ - (0 - offsetZ) / scale;                   // at pixel y=0  => maxZ + offsetZ/scale
+const bottomZ= maxZ - (canvasHeight - offsetZ) / scale;        // at pixel y=canvasHeight
+
+// make sure values are finite
+const L = Number.isFinite(leftX) ? leftX : minX;
+const R = Number.isFinite(rightX) ? rightX : maxX;
+const T = Number.isFinite(topZ) ? topZ : maxZ;
+const B = Number.isFinite(bottomZ) ? bottomZ : minZ;
+
+// round start/end to grid multiples
+const startXVal = Math.floor(L / gridInterval) * gridInterval;
+const endXVal   = Math.ceil(R  / gridInterval) * gridInterval;
+const startZVal = Math.floor(B / gridInterval) * gridInterval;
+const endZVal   = Math.ceil(T  / gridInterval) * gridInterval;
+
+// draw vertical grid lines (X)
+for (let xVal = startXVal; xVal <= endXVal; xVal += gridInterval) {
+  const xPos = mapX(xVal);
+  // skip lines that map off-canvas (tiny tolerance)
+  if (!Number.isFinite(xPos) || xPos < -10 || xPos > canvasWidth + 10) continue;
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(xPos, 0);
+  ctx.lineTo(xPos, canvasHeight);
+  ctx.stroke();
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "14px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.fillText(`${xVal}`, xPos, 2);
+}
+
+// draw horizontal grid lines (Z)
+for (let zVal = startZVal; zVal <= endZVal; zVal += gridInterval) {
+  const zPos = mapZ(zVal);
+  if (!Number.isFinite(zPos) || zPos < -10 || zPos > canvasHeight + 10) continue;
+
+  ctx.strokeStyle = "#555";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, zPos);
+  ctx.lineTo(canvasWidth, zPos);
+  ctx.stroke();
+
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = "14px sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(`${zVal}`, 6, zPos);
+}
+
+      // draw a faint border so the canvas edges are obvious
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 4;
+      ctx.strokeRect(0.5, 0.5, canvasWidth - 1, canvasHeight - 1);
 
       // Axis lines & Sol
       const solX = offsetX + (0 - minX) * scale;
@@ -290,30 +343,35 @@ function drawSystems(data, type) {
       // ---------------- LEGEND ----------------
       const legendPadding = 20;
       const circleRadius = 10;
-      const lineHeight = 30;
+      const  lineHeight = 30;
       ctx.font = "18px sans-serif";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
 
+      // Legend items
       const legendItems = [
         { text: `${factions.FACTION.name} controlled`, color: factions.FACTION.colorControlled },
         { text: `${factions.FACTION.name} uncontrolled`, color: factions.FACTION.colorUncontrolled },
         { text: `${factions.RIVAL.name} controlled`, color: factions.RIVAL.colorControlled },
         { text: `${factions.RIVAL.name} uncontrolled`, color: factions.RIVAL.colorUncontrolled },
-      ];
+    ];
 
-      let startX = canvasWidth - 300 - legendPadding;
-      let startY = canvasHeight - (legendItems.length * lineHeight) - legendPadding;
+    // Place legend on left, accounting for Z labels
+    // (shift right ~50px so it doesn’t overlap Z axis numbers)
+    const axisLabelOffset = 50;
+    let startX = legendPadding + axisLabelOffset;
+    let startY = canvasHeight - (legendItems.length * lineHeight) - legendPadding;
 
-      legendItems.forEach((item, i) => {
-        const y = startY + i * lineHeight;
+    // Draw legend
+    legendItems.forEach((item, i) => {
+      const y = startY + i * lineHeight;
         ctx.beginPath();
         ctx.arc(startX + circleRadius, y, circleRadius, 0, Math.PI * 2);
         ctx.fillStyle = item.color;
         ctx.fill();
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText(item.text, startX + circleRadius * 2 + 8, y);
-      });
+    });
       
       // ---------------- ANALYSIS ----------------
       const factionWithRival = factionData
@@ -367,14 +425,14 @@ function drawSystems(data, type) {
       });
 
       fields.push({
-        name: `${factions.FACTION.name} system(s) ≤${nearbyLimit} ly to ${factions.RIVAL.name}'s:`,
-        value: nearbyLines.length > 0 ? formatSystemListLimited(nearbyLines, 1000) : "* No systems",
+        name: `${factions.FACTION.name} sustav(i) unutar ${nearbyLimit} ly od ${factions.RIVAL.name} **control** sustava:`,
+        value: nearbyLines.length > 0 ? formatSystemListLimited(nearbyLines, 1000) : "* Nema sustava",
         inline: false
       });
 
       fields.push({
-        name: `${factions.FACTION.name}-controlled systems with ${factions.RIVAL.name} present:`,
-        value: factionWithRival.length > 0 ? formatSystemListLimited(factionWithRival.map(s => `${factions.FACTION.prefix}${s}`)) : "* No systems",
+        name: `${factions.FACTION.name} **control** sustavi u kojima se nalazi ${factions.RIVAL.name}:`,
+        value: factionWithRival.length > 0 ? formatSystemListLimited(factionWithRival.map(s => `${factions.FACTION.prefix}${s}`)) : "* Nema sustava",
         inline: false
       });
 
@@ -383,7 +441,7 @@ function drawSystems(data, type) {
       const attachment = new AttachmentBuilder(canvas.toBuffer('image/png'), { name: 'BIG_map.png' });
 
       const embed = new EmbedBuilder()
-        .setTitle(`${factions.FACTION.name} vs ${factions.RIVAL.name} map`)
+        .setTitle(`🗺️ ${factions.FACTION.name} vs ${factions.RIVAL.name} map`)
         .setColor(0xFFA500)
         .addFields(fields)
         .setImage('attachment://BIG_map.png')
@@ -768,6 +826,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
