@@ -79,7 +79,7 @@ client.on('messageCreate', async (message) => {
       );
     }
 
-    await message.reply(`📝 Generiram analizu za **${factionName}** vs **${rivalName}**... može potrajati ~10s`);
+    const loadingMsg = await message.reply(`📝 Generiram analizu za **${factionName}** vs **${rivalName}**... može potrajati ~10s`);
 
     try {
       // ---------------- FETCH FUNCTIONS ----------------
@@ -448,8 +448,8 @@ function drawSystems(data, type) {
         .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.0` })
         .setTimestamp();
 
-      // Send directly via Discord.js
-      await message.reply({ embeds: [embed], files: [attachment] });
+      // Replace the loading message with the final embed + image
+      await loadingMsg.edit({ content: null, embeds: [embed], files: [attachment] });
 
 
 
@@ -826,6 +826,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
