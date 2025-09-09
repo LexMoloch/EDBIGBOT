@@ -86,7 +86,7 @@ client.on('messageCreate', async (message) => {
       async function fetchFactionSystems(name) {
         const res = await fetch(`https://elitebgs.app/api/ebgs/v5/factions?name=${encodeURIComponent(name)}`);
         const data = await res.json();
-        if (!data.docs || data.docs.length === 0) throw new Error(`❌ Fakcija "${name}" nije nađena`);
+        if (!data.docs || data.docs.length === 0) throw new Error(`Fakcija "${name}" nije nađena`);
         return data.docs[0].faction_presence.map(p => p.system_name);
       }
 
@@ -455,9 +455,11 @@ function drawSystems(data, type) {
 
     } catch (err) {
       console.error(err);
-      return message.reply(`❌ Error: ${err.message}`);
+      // Delete the loading message if there was an error
+      await loadingMsg.delete().catch(() => {});
+      return message.reply(`❌ Greška: ${err.message}`);
     }
-  }
+
 
 
   // 🚀 /traffic command
@@ -826,6 +828,7 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
