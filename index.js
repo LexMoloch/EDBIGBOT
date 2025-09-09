@@ -431,7 +431,7 @@ function drawSystems(data, type) {
       });
 
       fields.push({
-        name: `${factions.FACTION.name} **control** sustavi u kojima se nalazi ${factions.RIVAL.name}:`,
+        name: `${factions.FACTION.name} sustavi u kojima se nalazi ${factions.RIVAL.name}:`,
         value: factionWithRival.length > 0 ? formatSystemListLimited(factionWithRival.map(s => `${factions.FACTION.prefix}${s}`)) : "* Nema sustava",
         inline: false
       });
@@ -827,3 +827,4 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
