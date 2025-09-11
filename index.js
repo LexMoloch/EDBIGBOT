@@ -1,4 +1,88 @@
-import fetch from 'node-fetch';// ---------------- FETCH FUNCTIONS ----------------
+import fetch from 'node-fetch';
+import { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder } from 'discord.js';
+import { createCanvas } from "canvas";
+import dotenv from 'dotenv';
+import FormData from 'form-data';
+
+dotenv.config();
+
+// Keep everything starting from "ColonisationShip", ignoring leading junk
+// Remove everything before and including $EXT_PANEL_ if present, keep the rest
+// Clean $EXT_PANEL_ prefix from station names
+function cleanStationName(name) {
+  if (!name) return "Unknown";
+  return name.replace(/^\$EXT_PANEL_/i, '').trim();
+}
+
+
+// 🔍 Helper: Validate EDSM system response
+function validateSystem(systemData, systemName, message) {
+  if (!systemData || !systemData.name) {
+    message.reply(`❌ Sustav **${systemName}** nije pronađen.`);
+    return false;
+  }
+  return true;
+}
+
+// Capitalize each word normally
+function capitalizeWords(str) {
+  return str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : str;
+}
+
+// Capitalize all letters
+function capitalizeAll(str) {
+  return str ? str.split(' ').map(w => w.toUpperCase()).join(' ') : str;
+}
+
+// Safe value to string or fallback
+const safe = v => v != null ? String(v) : "Unknown";
+
+// Determine simple pad indicator for stations
+function simplePads(station) {
+  const L = station.padsL || 0;
+  const M = station.padsM || 0;
+  const S = station.padsS || 0;
+  if (L > 0) return "[L]";
+  if (L === 0 && M > 0) return "[M]";
+  if (L === 0 && M === 0 && S > 0) return "[S]";
+  return "";
+};
+
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
+});
+
+
+client.once('ready', () => {
+  console.log(`✅ Prijavljen kao ${client.user.tag}`);
+});
+
+client.on('messageCreate', async (message) => {
+  if (message.author.bot) return;
+
+  const content = message.content.trim();
+
+  // 🗺️ /factionmap FACTION, RIVAL
+  if (content.toLowerCase().startsWith('/factionmap')) {
+    const rawParams = content.slice(12).trim();
+    const [factionName, rivalName] = rawParams.split(',').map(s => s.trim());
+
+    if (!factionName || !rivalName) {
+      return message.reply(
+        '⚠️ Unesi (case-sensitive!) nazive fakcije razdvojena zarezom`\n' +
+        'Primjer: `/factionmap B.I.G. - Balkan Intergalactic Guerilla, Enigma Dyson Syndicate`'
+      );
+    }
+
+    const loadingMsg = await message.reply(`📝 Generiram analizu za **${factionName}** vs **${rivalName}**... može potrajati ~10s`);
+
+    try {
+   // ---------------- FETCH FUNCTIONS ----------------
 
 // Spansh search for systems where the faction is present
 async function fetchFactionSystems(name) {
@@ -82,7 +166,6 @@ async function fetchAllSystemData(systems) {
 
   return allDocs;
 }
-
 
 
       // ---------------- CONFIG ----------------
@@ -408,7 +491,7 @@ fields.push({
         .setColor(0xFFA500)
         .addFields(fields)
         .setImage('attachment://BIG_map.png')
-        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.4.0 Spansh` })
+        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.0` })
         .setTimestamp();
 
       // Replace the loading message with the final embed + image
@@ -790,6 +873,4 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
-
-
 
