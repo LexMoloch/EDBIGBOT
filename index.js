@@ -867,11 +867,12 @@ if (content.toLowerCase().startsWith('/xsystem')) {
           {
             name: "💪 Power",
             value: spanshData.controlling_power
-              ? `**${spanshData.controlling_power}**\n ${spanshData.power_state}: ${spanshData.power_state_control_progress != null ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%' : 'Unknown'}\nReinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}\nUndermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
-              : "Unnocupied",
+              ? `⚔️**${spanshData.controlling_power}**\n**${spanshData.power_state}:** ${spanshData.power_state_control_progress != null ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%' : 'Unknown'}\nReinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}\nUndermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
+              : spanshData.power_conflicts && spanshData.power_conflicts.length > 0
+                ? `**Contested**\n${spanshData.power_conflicts.map(pc => `${pc.name}: ${(pc.progress * 100).toFixed(2)}%`).join('\n')}`
+                : "Unnocupied",
             inline: true
           },
-
           { 
             name: "💵 Exploration Values", 
             value: `Mapping: ${spanshData.estimated_mapping_value?.toLocaleString() ?? 'Unknown'}\nScan: ${spanshData.estimated_scan_value?.toLocaleString() ?? 'Unknown'}`, 
@@ -902,5 +903,6 @@ if (content.toLowerCase().startsWith('/xsystem')) {
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
