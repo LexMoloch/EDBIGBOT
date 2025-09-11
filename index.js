@@ -48,6 +48,29 @@ function simplePads(station) {
   return "";
 };
 
+// Spansh system search
+async function fetchSpanshSystem(systemName) {
+  const res = await fetch(`https://spansh.co.uk/api/systems/search/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      filters: { name: { value: [systemName] } },
+      page: 0,
+      size: 1
+    })
+  });
+
+  if (!res.ok) throw new Error(`Spansh fetch error: ${res.status}`);
+  const data = await res.json();
+  console.log('Spansh search response:', data); // <-- then use it
+  
+  if (!data.results || data.results.length === 0 || data.count === 0) {
+    throw new Error(`❌ Spansh nije našao sustav: ${systemName}. Upit je case-sensitive - provjeri je li naziv u potpunosti točan (velika/mala slova, razmaci...).`);
+  }
+
+  return data.results[0];
+}
+
 
 const client = new Client({
   intents: [
@@ -695,128 +718,113 @@ if (content.toLowerCase().startsWith('/system')) {
 
 // 🌌 /xsystem command (EDAstro + EDSM full)
 if (content.toLowerCase().startsWith('/xsystem')) {
+    const parts = content.split(/\s+/);
+    const systemName = parts.slice(1).join(' ');
 
-  const parts = content.trim().split(/\s+/);
-  const systemName = parts.slice(1).join(' '); // everything after /xsystem
+    if (!systemName) {
+      return message.reply('⚠️ Unesi naziv sustava. Primjer: `/xsystem Grudi`');
+    }
 
-  if (!systemName) {
-    return message.reply('⚠️ Unesi naziv sustava. Primjer: `/xsystem Grudi`');
-  }
+    const encodedName = encodeURIComponent(systemName);
+    const EDSM_SYSTEM_URL = `https://www.edsm.net/api-v1/system?systemName=${encodedName}&showInformation=1&showId=1&showPrimaryStar=1`;
+    const EDSM_FACTIONS_URL = `https://www.edsm.net/api-system-v1/factions?systemName=${encodedName}`;
+    const EDASTRO_URL = `https://edastro.com/api/starsystem?q=${encodedName}`;
 
-  const encodedName = encodeURIComponent(systemName);
-  const EDSM_SYSTEM_URL = `https://www.edsm.net/api-v1/system?systemName=${encodedName}&showInformation=1&showId=1&showPrimaryStar=1`;
-  const EDSM_FACTIONS_URL = `https://www.edsm.net/api-system-v1/factions?systemName=${encodedName}`;
-  const EDASTRO_URL = `https://edastro.com/api/starsystem?q=${encodedName}`;
+    try {
+      // Fetch all data in parallel
+      const [systemRes, factionRes, edastroRes, spanshData] = await Promise.all([
+        fetch(EDSM_SYSTEM_URL),
+        fetch(EDSM_FACTIONS_URL),
+        fetch(EDASTRO_URL),
+        fetchSpanshSystem(systemName)
+      ]);
 
-  try {
-    const [systemRes, factionRes, edastroRes] = await Promise.all([
-      fetch(EDSM_SYSTEM_URL),
-      fetch(EDSM_FACTIONS_URL),
-      fetch(EDASTRO_URL)
-    ]);
+      const systemData = await systemRes.json() || {};
+      if (!validateSystem(systemData, systemName, message)) return;
 
+      const factionData = await factionRes.json() || {};
+      let edastroData = await edastroRes.json() || {};
+      if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
+      const astro = edastroData || {};
 
-    const systemData = await systemRes.json() || {};
+      // === System Info ===
+      const systemInfo = {
+        government: systemData.government ?? systemData.information?.government ?? 'Unknown',
+        allegiance: systemData.allegiance ?? systemData.information?.allegiance ?? 'Unknown',
+        security: systemData.security ?? systemData.information?.security ?? 'Unknown',
+        population: systemData.population ?? systemData.information?.population ?? 'Unknown',
+        economy: systemData.information?.economy ?? 'Unknown',
+        secondEconomy: systemData.information?.secondEconomy ?? null
+      };
 
-  if (!validateSystem(systemData, systemName, message)) return;
+      // === Stars & Planets ===
+      const stars = astro.stars || [];
+      const mainStar = astro.stars?.[0]?.subType ?? "Unknown";
+      const planets = astro.planets || [];
+      const numPlanets = planets.length;
+      const numELW = planets.filter(p => p.subType?.toLowerCase().includes('earth-like world')).length;
+      const numWW = planets.filter(p => p.subType?.toLowerCase().includes('water world')).length;
+      const numGasGiants = planets.filter(p => p.subType?.toLowerCase().includes('gas giant')).length;
+      const distanceFromSol = astro.sol_dist != null ? astro.sol_dist.toFixed(2) : 'Unknown';
 
-    const factionData = await factionRes.json() || {};
-    let edastroData = await edastroRes.json() || {};
-    if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
-    const astro = edastroData || {};
+      // === Rings ===
+      const starRings = astro.stars?.flatMap(s => [...(s.rings || []), ...(s.belts || [])]) || [];
+      const planetRings = planets.flatMap(p => p.rings || []);
+      const allRings = [...starRings, ...planetRings];
+      const ringsText = allRings.length
+        ? allRings.map(r => `* ${r.name} (${r.type})`).join('\n')
+        : "None";
 
+      // === Starports / Settlements ===
+      const stations = astro.stations || [];
+      const starports = stations
+        .filter(s => {
+          const type = (s.type || '').toLowerCase();
+          return ['coriolis','orbis','ocellus','starport','outpost'].some(t => type.includes(t));
+        })
+        .sort((a, b) => (a.distanceToArrival ?? Infinity) - (b.distanceToArrival ?? Infinity));
 
+      const starportText = starports.length
+        ? starports.map(s => {
+            const pads = simplePads(s);
+            const planetInfo = s.type === "Planetary Outpost" && s.bodyName ? `[PLANETARY, ${s.bodyName}]` : '';
+            const dist = s.distanceToArrival != null ? Math.round(s.distanceToArrival) + " ls" : "Unknown";
+            const cleanedName = cleanStationName(s.name);
+            return `* ${cleanedName} ${pads}${planetInfo ? ' ' + planetInfo : ''} - *${dist}*`;
+          }).join('\n')
+        : "Nema orbitalnih ili planetarnih starporta";
 
-    // === EDSM Info ===
-    const systemInfo = {
-      id: systemData.id ?? 'Unknown',
-      government: systemData.government ?? systemData.information?.government ?? 'Unknown',
-      allegiance: systemData.allegiance ?? systemData.information?.allegiance ?? 'Unknown',
-      security: systemData.security ?? systemData.information?.security ?? 'Unknown',
-      population: systemData.population ?? systemData.information?.population ?? 'Unknown',
-      economy: systemData.information?.economy ?? 'Unknown',
-      secondEconomy: systemData.information?.secondEconomy ?? null
-    };
-
-    // === Star & Planet Data ===
-    const stars = astro.stars || [];
-    const mainStar = astro.stars?.[0]?.subType ?? "Unknown";
-    const planets = astro.planets || [];
-    const numPlanets = planets.length;
-    const numELW = planets.filter(p => p.subType?.toLowerCase().includes('earth-like world')).length;
-    const numWW = planets.filter(p => p.subType?.toLowerCase().includes('water world')).length;
-    const numGasGiants = planets.filter(p => p.subType?.toLowerCase().includes('gas giant')).length;
-    const distanceFromSol = astro.sol_dist != null ? astro.sol_dist.toFixed(2) : 'Unknown';
-
-// === Rings ===
-const starRings = astro.stars?.flatMap(s => [...(s.rings || []), ...(s.belts || [])]) || [];
-const planetRings = planets.flatMap(p => p.rings || []);
-const allRings = [...starRings, ...planetRings];
-const ringsText = allRings.length
-  ? allRings.map(r => `* ${r.name} (${r.type})`).join('\n')
-  : "None";
-
-// === Starports ===
-const stations = astro.stations || [];
-const starports = stations
-  .filter(s => {
-    const type = (s.type || '').toLowerCase();
-    return ['coriolis','orbis','ocellus','starport','outpost'].some(t => type.includes(t));
-  })
-  .sort((a, b) => {
-    const distA = a.distanceToArrival ?? Infinity;
-    const distB = b.distanceToArrival ?? Infinity;
-    return distA - distB;
-  });
-
-const starportText = starports.length
-  ? starports.map(s => {
-      const pads = simplePads(s);
-      // Only show [PLANET bodyName] if type is exactly "Planetary Outpost"
-      const planetInfo = s.type === "Planetary Outpost" && s.bodyName ? `[PLANETARY, ${s.bodyName}]` : '';
-      const dist = s.distanceToArrival != null ? Math.round(s.distanceToArrival) + " ls" : "Unknown";
-      const cleanedName = cleanStationName(s.name); 
-      // Conditionally add a space before planetInfo
-      return `* ${cleanedName} ${pads}${planetInfo ? ' ' + planetInfo : ''} - *${dist}*`;
-    }).join('\n')
-  : "Nema orbitalnih ili planetarnih starporta";
-
-
-    // === Odyssey Settlements ===
-    const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
-    const totalOdy = odysseySettlements.length;
-
-let odysseyText = "Nema settlementa";
-if (totalOdy > 0) {
-  // Count number of settlements with L and M pads
-  const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
-  const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
-  odysseyText = `* Settlementi s L pad: ${countL}\n* Settlementi samo s M pad: ${countM}`;
-}
-
-// === Carriers ===
-const carriers = astro.carriers || [];
-const carrierText = carriers.length
-  ? (() => {
-      const maxDisplay = 10;
-      const displayed = carriers.slice(0, maxDisplay).map(c => {
-        const isSquadron = c.callsign && c.callsign.length === 4;
-        const docking = !isSquadron
-          ? (c.dockingAccess === 'squadronfriends' ? 'Squadron and Friends' : safe(c.dockingAccess))
-          : '';
-        const carrierLabel = isSquadron
-          ? `*  **Squadron Carrier** [${c.callsign}]`
-          : `*  ${capitalizeAll(c.name ?? 'Unnamed')} [${c.callsign}]`;
-      //  return docking ? `${carrierLabel}\nDocking: ${docking}` : carrierLabel;
-      return docking ? `${carrierLabel}` : carrierLabel;
-      });
-      if (carriers.length > maxDisplay) {
-        displayed.push(`* ...${carriers.length - maxDisplay} more`);
+      // Odyssey Settlements
+      const odysseySettlements = stations.filter(s => (s.type || '').toLowerCase().includes('odyssey'));
+      const totalOdy = odysseySettlements.length;
+      let odysseyText = "Nema settlementa";
+      if (totalOdy > 0) {
+        const countL = odysseySettlements.filter(s => (s.padsL || 0) > 0).length;
+        const countM = odysseySettlements.filter(s => (s.padsM || 0) > 0).length;
+        odysseyText = `* Settlementi s L pad: ${countL}\n* Settlementi samo s M pad: ${countM}`;
       }
-      return displayed.join('\n');
-    })()
-  : "Nema carriera";
 
+      // Carriers
+      const carriers = astro.carriers || [];
+      const carrierText = carriers.length
+        ? (() => {
+            const maxDisplay = 10;
+            const displayed = carriers.slice(0, maxDisplay).map(c => {
+              const isSquadron = c.callsign && c.callsign.length === 4;
+              const docking = !isSquadron
+                ? (c.dockingAccess === 'squadronfriends' ? 'Squadron and Friends' : safe(c.dockingAccess))
+                : '';
+              const carrierLabel = isSquadron
+                ? `*  **Squadron Carrier** [${c.callsign}]`
+                : `*  ${capitalizeAll(c.name ?? 'Unnamed')} [${c.callsign}]`;
+              return docking ? `${carrierLabel}` : carrierLabel;
+            });
+            if (carriers.length > maxDisplay) displayed.push(`* ...${carriers.length - maxDisplay} more`);
+            return displayed.join('\n');
+          })()
+        : "Nema carriera";
+
+      // Factions
       const factions = factionData.factions || [];
       const controllingFactionId = factionData.controllingFaction?.id;
       const factionText = factions
@@ -827,50 +835,72 @@ const carrierText = carriers.length
           let prefix = "";
           if (f.id === controllingFactionId) prefix += "👑 ";
           if (f.isPlayer) prefix += "👥 ";
-          return activeStates 
+          return activeStates
             ? `• ${prefix}${f.name}: ${infPercent}% | ${activeStates}`
             : `• ${prefix}${f.name}: ${infPercent}%`;
         })
         .join('\n') || "Nema podataka o frakcijama";
 
-    // === Build Embed ===
-    const embed = new EmbedBuilder()
-      .setTitle(`🌌 System ${systemData.name || systemName}`)
-      .setURL(systemData.url)
-      .setColor(0x00bfff)
-      .addFields(
-        { name: "🆔 System ID", value: `${systemInfo.id}`, inline: true },
-        { name: "🏛️ Government", value: systemInfo.government, inline: true },
-        { name: "⚖️ Allegiance", value: systemInfo.allegiance, inline: true },
-        { name: "🔒 Security", value: systemInfo.security, inline: true },
-        { name: "👥 Population", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
-        { name: "💰 Economy", value: systemInfo.secondEconomy ? `${systemInfo.economy} / ${systemInfo.secondEconomy}` : systemInfo.economy, inline: true },
-        { name: "⭐ Main Star", value: mainStar, inline: true },
-        { name: "📏 Distance from Sol", value: `${distanceFromSol} ly`, inline: true },
-        { name: "🌕 Planets", value: `${numPlanets}`, inline: true },
-        { name: "🌍 ELWs", value: `${numELW}`, inline: true },
-        { name: "🔵 Water Worlds", value: `${numWW}`, inline: true },
-        { name: "⚪ Gas Giants", value: `${numGasGiants}`, inline: true },
-        { name: "🪐 Rings", value: ringsText, inline: false },
-        { name: "🏢 Starports", value: starportText, inline: false },
-  { name: `🏠 Odyssey Settlements (Total: ${totalOdy})`, value: odysseyText, inline: false },
-        { name: `🛰️ Carriers (Total: ${carriers.length})`, value: carrierText, inline: false },
-        { name: "Factions", value: factionText, inline: false }
-      )
-      .setFooter({ text: `Zatražio/la: ${message.author.tag} | EDSM+EDASTRO | v1.3.0` })
-      .setTimestamp();
+      // === Build Embed ===
+      const embed = new EmbedBuilder()
+        .setTitle(`🌌 System ${systemData.name || systemName}`)
+        .setURL(systemData.url)
+        .setColor(0x00bfff)
+        .addFields(
+          { 
+            name: "🌐 Region", 
+            value: `${spanshData.region ?? 'Unknown'}\n${spanshData.distance != null ? spanshData.distance.toFixed(2) + ' ly from Sol' : ''}`, 
+            inline: true 
+          },
+          { name: "⭐ Main Star", value: mainStar, inline: true },
+          { name: "🌕 Planets", value: `${numPlanets}`, inline: true },
+          { name: "🌍 ELWs", value: `${numELW}`, inline: true },
+          { name: "🔵 Water Worlds", value: `${numWW}`, inline: true },
+          { name: "⚪ Gas Giants", value: `${numGasGiants}`, inline: true },
+          { name: "👷‍♂️ Colony", value: spanshData.knownpermit || spanshData.is_being_colonised ? 'Yes' : 'No', inline: true },
+          { name: "👷‍♂️ Permit only?", value: spanshData.is_colonised || spanshData.is_being_colonised ? 'Yes' : 'No', inline: true },
+         
+          { name: "⚖️ Allegiance", value: systemInfo.allegiance, inline: true },
+          { name: "🔒 Security", value: systemInfo.security, inline: true },
+          { name: "👥 Population", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
+          { name: "💰 Economy", value: systemInfo.secondEconomy ? `${systemInfo.economy} / ${systemInfo.secondEconomy}` : systemInfo.economy, inline: true },        
+          {
+            name: "💪 Power",
+            value: spanshData.controlling_power
+              ? `**${spanshData.controlling_power}**\n ${spanshData.power_state}: ${spanshData.power_state_control_progress != null ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%' : 'Unknown'}\nReinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}\nUndermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
+              : "Unnocupied",
+            inline: true
+          },
 
-    message.reply({ embeds: [embed] });
+          { 
+            name: "💵 Exploration Values", 
+            value: `Mapping: ${spanshData.estimated_mapping_value?.toLocaleString() ?? 'Unknown'}\nScan: ${spanshData.estimated_scan_value?.toLocaleString() ?? 'Unknown'}`, 
+            inline: true 
+          },
+          { name: "🏛️ Government", value: systemInfo.government, inline: true },
+          { name: "🪐 Rings", value: ringsText, inline: false },
+          { name: "🏢 Starports", value: starportText, inline: false },
+          { name: `🏠 Odyssey Settlements (Total: ${totalOdy})`, value: odysseyText, inline: false },
+          { name: `🛰️ Carriers (Total: ${carriers.length})`, value: carrierText, inline: false },
+          { name: "Factions", value: factionText, inline: false },
+        )
+        .setFooter({ text: `Zatražio/la: ${message.author.tag} | EDSM+EDASTRO+SPANSH | v1.4.0` })
+        .setTimestamp();
 
-  } catch (err) {
-    console.error(err);
-    message.reply('❌ Greška pri dohvaćanju podataka o sustavu ili frakcijama.');
+      message.reply({ embeds: [embed] });
+
+    } catch (err) {
+      console.error(err);
+      message.reply(err.message.includes('Spansh nije našao sustav')
+        ? err.message
+        : '❌ Greška pri dohvaćanju podataka o sustavu ili frakcijama.');
+    }
   }
-}
 
 
 });
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
