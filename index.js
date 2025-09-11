@@ -1,134 +1,88 @@
-import fetch from 'node-fetch';
-import { Client, GatewayIntentBits, EmbedBuilder, AttachmentBuilder } from 'discord.js';
-import { createCanvas } from "canvas";
-import dotenv from 'dotenv';
-import FormData from 'form-data';
+import fetch from 'node-fetch';// ---------------- FETCH FUNCTIONS ----------------
 
-dotenv.config();
+// Spansh search for systems where the faction is present
+async function fetchFactionSystems(name) {
+  const url = "https://spansh.co.uk/api/systems/search/";
+  let allSystems = [];
+  let page = 0;
+  const size = 50; // batch size
 
-// Keep everything starting from "ColonisationShip", ignoring leading junk
-// Remove everything before and including $EXT_PANEL_ if present, keep the rest
-// Clean $EXT_PANEL_ prefix from station names
-function cleanStationName(name) {
-  if (!name) return "Unknown";
-  return name.replace(/^\$EXT_PANEL_/i, '').trim();
-}
+  while (true) {
+    const body = {
+      filters: {
+        minor_faction_presences: { value: [name] }
+      },
+      page,
+      size
+    };
 
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
 
-// 🔍 Helper: Validate EDSM system response
-function validateSystem(systemData, systemName, message) {
-  if (!systemData || !systemData.name) {
-    message.reply(`❌ Sustav **${systemName}** nije pronađen.`);
-    return false;
+    if (!res.ok) throw new Error(`Spansh search error: ${res.status}`);
+
+    const data = await res.json();
+    if (!data.results || data.results.length === 0) break;
+
+    allSystems = allSystems.concat(data.results);
+
+    if (data.results.length < size) break; // last page
+    page++;
   }
-  return true;
+
+  return allSystems.map(s => s.name);
 }
 
-// Capitalize each word normally
-function capitalizeWords(str) {
-  return str ? str.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ') : str;
-}
-
-// Capitalize all letters
-function capitalizeAll(str) {
-  return str ? str.split(' ').map(w => w.toUpperCase()).join(' ') : str;
-}
-
-// Safe value to string or fallback
-const safe = v => v != null ? String(v) : "Unknown";
-
-// Determine simple pad indicator for stations
-function simplePads(station) {
-  const L = station.padsL || 0;
-  const M = station.padsM || 0;
-  const S = station.padsS || 0;
-  if (L > 0) return "[L]";
-  if (L === 0 && M > 0) return "[M]";
-  if (L === 0 && M === 0 && S > 0) return "[S]";
-  return "";
-};
-
-
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
-});
-
-
-client.once('ready', () => {
-  console.log(`✅ Prijavljen kao ${client.user.tag}`);
-});
-
-client.on('messageCreate', async (message) => {
-  if (message.author.bot) return;
-
-  const content = message.content.trim();
-
-  // 🗺️ /factionmap FACTION, RIVAL
-  if (content.toLowerCase().startsWith('/factionmap')) {
-    const rawParams = content.slice(12).trim();
-    const [factionName, rivalName] = rawParams.split(',').map(s => s.trim());
-
-    if (!factionName || !rivalName) {
-      return message.reply(
-        '⚠️ Unesi (case-sensitive!) nazive fakcije razdvojena zarezom`\n' +
-        'Primjer: `/factionmap B.I.G. - Balkan Intergalactic Guerilla, Enigma Dyson Syndicate`'
-      );
-    }
-
-    const loadingMsg = await message.reply(`📝 Generiram analizu za **${factionName}** vs **${rivalName}**... može potrajati ~10s`);
-
-    try {
-      // ---------------- FETCH FUNCTIONS ----------------
-      async function fetchFactionSystems(name) {
-        const res = await fetch(`https://elitebgs.app/api/ebgs/v5/factions?name=${encodeURIComponent(name)}`);
-        const data = await res.json();
-        if (!data.docs || data.docs.length === 0) throw new Error(`Fakcija "${name}" nije nađena`);
-        return data.docs[0].faction_presence.map(p => p.system_name);
-      }
-
+// Fetch system data from Spansh (instead of EliteBGS) and include coordinates + controlling faction
 async function fetchAllSystemData(systems) {
   const allDocs = [];
-  const batchSize = 50; // how many system names per request
+  const size = 50; // batch size
 
-  for (let i = 0; i < systems.length; i += batchSize) {
-    const batch = systems.slice(i, i + batchSize);
-    const params = new URLSearchParams();
-    batch.forEach(name => params.append("name", name));
-
-    let currentPage = 1;
-    const limit = 10;
+  for (let i = 0; i < systems.length; i += size) {
+    const batch = systems.slice(i, i + size);
+    let page = 0;
 
     while (true) {
-      const batchParams = new URLSearchParams(params.toString());
-      batchParams.append("limit", limit);
-      batchParams.append("page", currentPage);
+      const body = {
+        filters: {
+          name: { value: batch }
+        },
+        size,
+        page
+      };
 
-      const response = await fetch(
-        `https://elitebgs.app/api/ebgs/v5/systems?${batchParams.toString()}`
+      const res = await fetch("https://spansh.co.uk/api/systems/search/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) throw new Error(`Spansh fetch error: ${res.status}`);
+      const data = await res.json();
+      if (!data.results || data.results.length === 0) break;
+
+      // Map relevant info
+      allDocs.push(
+        ...data.results.map(s => ({
+          name: s.name,
+          x: s.x,
+          y: s.y,
+          z: s.z,
+          controllingFaction: s.controlling_minor_faction || ""
+        }))
       );
-      const data = await response.json();
 
-      allDocs.push(...data.docs);
-
-      if (!data.hasNextPage) break;
-      currentPage = data.nextPage;
+      if (data.results.length < size) break;
+      page++;
     }
   }
 
-  return allDocs
-    .filter(s => s.controlling_minor_faction)
-    .map(s => ({
-      name: s.name,
-      x: s.x,
-      y: s.y,
-      z: s.z,
-      controllingFaction: s.controlling_minor_faction_cased
-    }));
+  return allDocs;
 }
+
 
 
       // ---------------- CONFIG ----------------
@@ -454,7 +408,7 @@ fields.push({
         .setColor(0xFFA500)
         .addFields(fields)
         .setImage('attachment://BIG_map.png')
-        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.3.0` })
+        .setFooter({ text: `Zatražio/la: ${message.author.tag} | v1.4.0 Spansh` })
         .setTimestamp();
 
       // Replace the loading message with the final embed + image
@@ -836,5 +790,6 @@ const carrierText = carriers.length
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
