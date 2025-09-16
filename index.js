@@ -127,7 +127,7 @@ async function fetchFactionSystems(name) {
   const url = "https://spansh.co.uk/api/systems/search/";
   let allSystems = [];
   let page = 0;
-  const size = 50; // batch size
+  const size = 500; // batch size
 
   while (true) {
     const body = {
@@ -902,6 +902,7 @@ if (content.toLowerCase().startsWith('/system')) {
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
