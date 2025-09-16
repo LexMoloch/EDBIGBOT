@@ -65,17 +65,17 @@ async function fetchSpanshSystem(systemName) {
   const raw = await res.text();
 
   // Log the raw body for debugging
-  console.log("Spansh raw response:", raw.slice(0, 2000000));
+  console.log("Spansh raw response:", raw.slice(0, 200));
 
   if (!res.ok) {
-    throw new Error(`Spansh fetch error: ${res.status} - ${raw.slice(0,20000000)}`);
+    throw new Error(`Spansh fetch error: ${res.status} - ${raw.slice(0,200)}`);
   }
 
   let data;
   try {
     data = JSON.parse(raw);
   } catch (e) {
-    throw new Error(`Spansh invalid JSON: ${raw.slice(0,20000000)}`);
+    throw new Error(`Spansh invalid JSON: ${raw.slice(0,200)}`);
   }
 
   if (!data.results || data.results.length === 0 || data.count === 0) {
@@ -902,6 +902,7 @@ if (content.toLowerCase().startsWith('/system')) {
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
