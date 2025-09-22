@@ -912,12 +912,6 @@ inline: true
                   : "Unnocupied",
                 inline: true
               },
-              {
-                name: "💵 Exploration Values",
-                value: `Mapping: ${spanshData.estimated_mapping_value?.toLocaleString() ?? 'Unknown'}
-              Scan: ${spanshData.estimated_scan_value?.toLocaleString() ?? 'Unknown'}`,
-                inline: true
-              },
 { 
 name: "💵 Exploration Values", 
 value: `Mapping: ${spanshData.estimated_mapping_value?.toLocaleString() ?? 'Unknown'}\nScan: ${spanshData.estimated_scan_value?.toLocaleString() ?? 'Unknown'}`, 
@@ -948,6 +942,7 @@ message.reply(err.message.includes('Spansh nije našao sustav')
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
 
