@@ -50,15 +50,15 @@ return "";
 
 // Spansh system search
 async function fetchSpanshSystem(systemName) {
-  const res = await fetch(`https://spansh.co.uk/api/systems/search/`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      filters: { name: { value: [systemName] } },
-      page: 0,
-      size: 1
-    })
-  });
+const res = await fetch(`https://spansh.co.uk/api/systems/search/`, {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+filters: { name: { value: [systemName] } },
+page: 0,
+size: 1
+})
+});
 
 if (!res.ok) throw new Error(`Spansh fetch error: ${res.status}`);
 const data = await res.json();
@@ -730,21 +730,50 @@ const EDSM_SYSTEM_URL = `https://www.edsm.net/api-v1/system?systemName=${encoded
 const EDSM_FACTIONS_URL = `https://www.edsm.net/api-system-v1/factions?systemName=${encodedName}`;
 const EDASTRO_URL = `https://edastro.com/api/starsystem?q=${encodedName}`;
 
+                 // === Safe EDASTRO fetch ===
+                    async function fetchEDAstroSafe(url) {
+                        try {
+                            const res = await fetch(url);
+                            let text = await res.text();
+
+                            // Remove leading/trailing junk (common MySQL warnings)
+                            text = text.trim();
+                            const start = text.indexOf('{') >= 0 ? text.indexOf('{') : 0;
+                            const end = text.lastIndexOf('}') >= 0 ? text.lastIndexOf('}') + 1 : text.length;
+                            text = text.substring(start, end);
+
+                            // Parse JSON safely
+                            let data;
+                            try {
+                                data = JSON.parse(text);
+                                if (Array.isArray(data)) data = data[0] || {};
+                                return data;
+                            } catch (e) {
+                                console.warn('EDAstro JSON parse error:', e.message);
+                                return {};
+                            }
+
+                        } catch (err) {
+                            console.error('EDAstro fetch error:', err.message);
+                            return {};
+                        }
+                    }
+              
 try {
 // Fetch all data in parallel
-const [systemRes, factionRes, edastroRes, spanshData] = await Promise.all([
+const [systemRes, factionRes, spanshData, edastroData] = await Promise.all([
 fetch(EDSM_SYSTEM_URL),
 fetch(EDSM_FACTIONS_URL),
-fetch(EDASTRO_URL),
-fetchSpanshSystem(systemName)
+//fetch(EDASTRO_URL),
+fetchSpanshSystem(systemName),
+fetchEDAstroSafe(EDASTRO_URL) // sanitized
 ]);
 
 const systemData = await systemRes.json() || {};
 if (!validateSystem(systemData, systemName, message)) return;
 
 const factionData = await factionRes.json() || {};
-let edastroData = await edastroRes.json() || {};
-if (Array.isArray(edastroData)) edastroData = edastroData[0] || {};
+
 const astro = edastroData || {};
 
 // === System Info ===
@@ -865,16 +894,30 @@ inline: true
 { name: "👥 Population", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
 { name: "💰 Economy", value: systemInfo.secondEconomy ? `${systemInfo.economy} / ${systemInfo.secondEconomy}` : systemInfo.economy, inline: true },        
 {
-name: "💪 Power",
-value: spanshData.controlling_power
-              ? `⚔️**${spanshData.controlling_power}**\n**${spanshData.power_state}:** ${spanshData.power_state_control_progress != null ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%' : 'Unknown'}\nReinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}\nUndermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
-              ? `**${spanshData.controlling_power}**\n**${spanshData.power_state}:** ${spanshData.power_state_control_progress != null ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%' : 'Unknown'}\nReinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}\nUndermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
-: spanshData.power_conflicts && spanshData.power_conflicts.length > 0
-                ? `**Contested**\n${spanshData.power_conflicts.map(pc => `${pc.name}: ${(pc.progress * 100).toFixed(2)}%`).join('\n')}`
-                ? `⚔️ **Contested**\n${spanshData.power_conflicts.map(pc => `${pc.name}: ${(pc.progress * 100).toFixed(2)}%`).join('\n')}`
-: "Unnocupied",
-inline: true
-},
+                name: "💪 Power",
+                value: spanshData.controlling_power
+                  ? `⚔️ **${spanshData.controlling_power}**
+              **${spanshData.power_state}:** ${
+                      spanshData.power_state_control_progress != null
+                        ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%'
+                        : 'Unknown'
+                    }
+              Reinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}
+              Undermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
+                  : spanshData.power_conflicts && spanshData.power_conflicts.length > 0
+                  ? `⚔️ **Contested**
+              ${spanshData.power_conflicts
+                .map(pc => `${pc.name}: ${(pc.progress * 100).toFixed(2)}%`)
+                .join('\n')}`
+                  : "Unnocupied",
+                inline: true
+              },
+              {
+                name: "💵 Exploration Values",
+                value: `Mapping: ${spanshData.estimated_mapping_value?.toLocaleString() ?? 'Unknown'}
+              Scan: ${spanshData.estimated_scan_value?.toLocaleString() ?? 'Unknown'}`,
+                inline: true
+              },
 { 
 name: "💵 Exploration Values", 
 value: `Mapping: ${spanshData.estimated_mapping_value?.toLocaleString() ?? 'Unknown'}\nScan: ${spanshData.estimated_scan_value?.toLocaleString() ?? 'Unknown'}`, 
