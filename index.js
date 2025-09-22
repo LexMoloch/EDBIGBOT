@@ -115,13 +115,20 @@ let page = 0;
 const size = 50; // batch size
 
 while (true) {
-const body = {
-filters: {
-minor_faction_presences: { value: [name] }
-},
-page,
-size
-};
+      const body = 
+    {
+          filters: {
+            minor_faction_presences: [
+              {
+                comparison: "<=>",
+                name: { value: [name] }
+              }
+            ]
+          },
+          sort: [],
+          size,
+          page
+    };
 
 const res = await fetch(url, {
 method: "POST",
@@ -942,7 +949,4 @@ message.reply(err.message.includes('Spansh nije našao sustav')
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
-
-
-
 
