@@ -900,25 +900,27 @@ inline: true
 { name: "🔒 Security", value: systemInfo.security, inline: true },
 { name: "👥 Population", value: `${typeof systemInfo.population === 'number' ? systemInfo.population.toLocaleString() : systemInfo.population}`, inline: true },
 { name: "💰 Economy", value: systemInfo.secondEconomy ? `${systemInfo.economy} / ${systemInfo.secondEconomy}` : systemInfo.economy, inline: true },        
-{
-                name: "💪 Power",
-                value: spanshData.controlling_power
-                  ? `⚔️ **${spanshData.controlling_power}**
-              **${spanshData.power_state}:** ${
-                      spanshData.power_state_control_progress != null
-                        ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%'
-                        : 'Unknown'
-                    }
-              Reinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}
-              Undermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
-                  : spanshData.power_conflicts && spanshData.power_conflicts.length > 0
-                  ? `⚔️ **Contested**
-              ${spanshData.power_conflicts
-                .map(pc => `${pc.name}: ${(pc.progress * 100).toFixed(2)}%`)
-                .join('\n')}`
-                  : "Unnocupied",
-                inline: true
-              },
+    {
+      name: "💪 Power",
+      value: spanshData.controlling_power
+        ? `⚔️ **${spanshData.controlling_power}**
+    **${spanshData.power_state}:** ${
+            spanshData.power_state_control_progress != null
+              ? (spanshData.power_state_control_progress * 100).toFixed(2) + '%'
+              : 'Unknown'
+          }
+    Reinforce: ${spanshData.power_state_reinforcement?.toLocaleString() ?? 'Unknown'}
+    Undermine: ${spanshData.power_state_undermining?.toLocaleString() ?? 'Unknown'}`
+        : spanshData.power_conflicts && spanshData.power_conflicts.length > 0
+        ? `⚔️ **Contested**
+    ${spanshData.power_conflicts
+      .slice() // copy array so we don’t mutate it
+      .sort((a, b) => b.progress - a.progress) // sort by % descending
+      .map(pc => `${pc.name}: ${(pc.progress * 100).toFixed(2)}%`)
+      .join('\n')}`
+        : "Unnocupied",
+      inline: true
+    },
 { 
 name: "💵 Exploration Values", 
 value: `Mapping: ${spanshData.estimated_mapping_value?.toLocaleString() ?? 'Unknown'}\nScan: ${spanshData.estimated_scan_value?.toLocaleString() ?? 'Unknown'}`, 
@@ -949,5 +951,6 @@ message.reply(err.message.includes('Spansh nije našao sustav')
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
 
