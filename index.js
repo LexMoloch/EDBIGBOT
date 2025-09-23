@@ -795,7 +795,7 @@ secondEconomy: systemData.information?.secondEconomy ?? null
 
 // === Stars & Planets ===
 const stars = astro.stars || [];
-const mainStar = astro.stars?.[0]?.subType ?? "Unknown";
+const mainStar = astro.mainStarType ?? "Unknown";
 const planets = astro.planets || [];
 const numPlanets = planets.length;
 const numELW = planets.filter(p => p.subType?.toLowerCase().includes('earth-like world')).length;
@@ -949,4 +949,5 @@ message.reply(err.message.includes('Spansh nije našao sustav')
 
 
 client.login(process.env.DISCORD_BOT_TOKEN);
+
 
